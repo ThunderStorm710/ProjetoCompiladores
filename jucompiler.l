@@ -1,11 +1,61 @@
 %{
-    
 #include <ctype.h>
-int numeroCapitulo = 0; 
-int numeroSeccao = 0;
-int numeroEnumerate = 0;
-
+#include <stdio.h>
+#include <stdlib.h>
 %}
+
+%%
+[A-Za-z]                                letra
+[1-9]                                   NATURAL
+[0-9]                                   NUMERO
+(_|$|letra)+(NUMERO|letra|_|$)*         ID
+(0|(NATURAL+|"_"+)NATURAL)              INTLIT
+                                        REALLIT
+[\f|\n|\t|\\|\"|\r]+                    STRLIT
+"true" | "false"                        BOOLLIT                 
+"&&"                                    AND                     
+"="                                     ASSIGN                  
+"*"                                     STAR                    
+","                                     COMMA                   
+"/"                                     DIV                     
+"=="                                    EQ                      
+">="                                    GE                      
+">"                                     GT                      
+"{"                                     LBRACE                  
+"<="                                    LE                      
+"("                                     LPAR                    
+"["                                     LSQ                     
+"<"                                     LT                      
+"-"                                     MINUS                   
+"%"                                     MOD                     
+"!="                                    NE                      
+"!"                                     NOT                     
+"||"                                    OR                      
+"+"                                     PLUS                    
+"}"                                     RBRACE                  
+")"                                     RPAR                    
+"]"                                     RSQ                     
+";"                                     SEMICOLON               
+"->"                                    ARROW                  
+"<<"                                    LSHIFT                  
+">>"                                    RSHIFT                  
+"ˆ"                                     XOR                     
+"boolean"                               BOOL                    
+"class"                                 CLASS                   
+".length"                               DOTLENGTH               
+"double"                                DOUBLE                  
+"else"                                  ELSE                    
+"if"                                    IF                      
+"int"                                   INT                     
+"System.out.print"                      PRINT                   
+"Integer.parseInt"                      PARSEINT                
+"public"                                PUBLIC                  
+"return"                                RETURN                  
+"static"                                STATIC                  
+"String"                                STRING                  
+"void"                                  VOID                    
+"while"                                 WHILE                   
+%%
 
 %X ESTADO_DOC ESTADO_ITEM ESTADO_ENUM  ESTADO_CHAPTER ESTADO_TITLE ESTADO_SECCAO
 %%
