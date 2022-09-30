@@ -2,6 +2,8 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+char c;
 %}
 
 NON_ZERO_DIGIT                                                  [1-9]
@@ -9,9 +11,37 @@ DIGIT                                                           [0-9]
 LETRA                                                           [A-Za-z]
 NUM                                                             ("0"|([1-9]+))
 EXPONENTIAL                                                     "e"|"E"
+SEQ_S0                                                          [1-9]"_"+[0-9]
+SEQ_C0                                                          [0-9]"_"+[0-9]
+INTLIT                                                          ("0"|{NON_ZERO_DIGIT}{DIGIT}*|{SEQ_S0})
+REALLIT                                                         ({SEQ_C0}+|{DIGIT}+).({SEQ_C0}+|{DIGIT}+)({EXPONENTIAL}[+,-](({SEQ_C0}+|{DIGIT}+)))?
+ID                                                              (_|$|{LETRA})+({DIGIT}|{LETRA}|_|$)*
+STRLIT                                                          [\f,\n,\t,\\,\",\r]([\f,\n,\t,\\,\",\r])+
+
+
+%X CLASS PAR_RETO PAR CHAVETAS COMENTARIO NAME_ID CHAVETAS_CLASS
+
 %%
+"class"                                                         {printf("CLASS\n"); BEGIN CLASS;}
+
+<CLASS>{ID}({STRLIT}|" ")"{"                                    {printf("ID("); 
+
+                                                                while(!isspace(c = getchar())){
+                                                                    printf("%c", c);
+                                                                }
+                                                                printf(")");  
+                                                                BEGIN NAME_ID;}
+
+<CLASS>[^{ID}]                                                  {printf("ERRO CLASSE SEM NOME");}
+<NAME_ID>{STRLIT}                                               ;
+<NAME
+<NOME_CLASS>({STRLIT}|" ")                                      {print("SAIR ID"); BEGIN CHAVETAS_CLASS;}
+<CHAVETAS_CLASS>
+
+
+
 ","                                                             {printf("COMMA\n");}
-[\f,\n,\t,\\,\",\r]                                             {printf("STRLIT\n");}
+{STRLIT}                                                        {printf("STRLIT\n");}
 "-"                                                             {printf("MINUS\n");}
 "<"                                                             {printf("LT\n");}
 "["                                                             {printf("LSQ\n");}
@@ -43,7 +73,6 @@ EXPONENTIAL                                                     "e"|"E"
 "else"                                                          {printf("ELSE\n");}
 "double"                                                        {printf("DOUBLE\n");}
 ".length"                                                       {printf("DOTLENGTH\n");}
-"class"                                                         {printf("CLASS\n");}
 "System.out.print"                                              {printf("PRINT\n");}
 "++","--","null","Integer","System"                             {printf("RESERVED\n");}
 "true"|"false"                                                  {printf("BOOLLIT\n");}
@@ -54,12 +83,13 @@ EXPONENTIAL                                                     "e"|"E"
 "return"                                                        {printf("RETURN\n");}
 "public"                                                        {printf("PUBLIC\n");}
 "Integer.parseInt"                                              {printf("PARSEINT\n");}
-(_|$|{LETRA})+({DIGIT}|{LETRA}|_|$)*                            {printf("ID\n");}
-({NUM}|"_"+|{NON_ZERO_DIGIT}"_"+{DIGIT}*)                       {printf("INTLIT\n");}
-{DIGIT}*.{DIGIT}+{EXPONENTIAL}[+,-]{DIGIT}+                     {printf("REALLIT\n");}
+{ID}                                                            {printf("ID\n");}
+{INTLIT}                                                        {printf("INTLIT\n");} //({NUM}|"_"+|{NON_ZERO_DIGIT}"_"+{DIGIT}*)                       {printf("INTLIT\n");}
+{REALLIT}                                                       {printf("REALLIT\n");}
 .                                                               ;
 
 %%
+
 int main()
 {
 yylex();
