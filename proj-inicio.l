@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+int numeroChavetas = 0;
 char c;
 %}
 
@@ -19,24 +20,50 @@ ID                                                              (_|$|{LETRA})+({
 STRLIT                                                          [\f,\n,\t,\\,\",\r]([\f,\n,\t,\\,\",\r])+
 
 
-%X CLASS PAR_RETO PAR CHAVETAS COMENTARIO NAME_ID CHAVETAS_CLASS
+%X CLASS PAR_RETO PAR CHAVETAS COMENTARIO NAME_ID METODO
 
 %%
 "class"                                                         {printf("CLASS\n"); BEGIN CLASS;}
 
-<CLASS>{ID}({STRLIT}|" ")"{"                                    {printf("ID("); 
+<CLASS>({STRLIT}|" "){ID}({STRLIT}|" ")"{"                      {numeroChavetas++; printf("ID("); 
 
                                                                 while(!isspace(c = getchar())){
                                                                     printf("%c", c);
                                                                 }
-                                                                printf(")");  
-                                                                BEGIN NAME_ID;}
+                                                                printf(")\n");  
+                                                                }
 
-<CLASS>[^{ID}]                                                  {printf("ERRO CLASSE SEM NOME");}
+<CLASS>[^{ID}]                                                  {printf("ERRO CLASSE SEM NOME");BEGIN 0;}
+
+
+<CLASS>"public"                                                 {printf("PUBLIC\n"); BEGIN METODO;}
+<METODO>({STRLIT}|" ")"static"                                  {printf("STATIC\n");}
+<METODO>[^(({STRLIT}|" ")"static")]                             {printf("ERRO FALTA STATIC");BEGIN 0;}
+<METODO>[^(({STRLIT}|" ")["int","double","boolean","void"])]    {printf("ERRO FALTA TIPO RETORNO");BEGIN 0;}
+<METODO>({STRLIT}|" ")"int"                                     {printf("INT\n");}
+<METODO>({STRLIT}|" ")"double"                                  {printf("DOUBLE\n");}
+<METODO>({STRLIT}|" ")"boolean"                                 {printf("BOOLEAN\n");}
+<METODO>({STRLIT}|" ")"void"                                    {printf("VOID\n");}
+<CLASS>({STRLIT}|" "){ID}({STRLIT}|" ")"{"                      {numeroChavetas++; printf("ID(");} 
+
+<METODO>({STRLIT}|" "){ID}"()"({STRLIT}|" ")?"{"                {numeroChavetas++; printf("ID("); 
+
+
+<METODO>({STRLIT}|" "){ID}["()","int","boolean","double"]            ({STRLIT}|" ")"{"                      {numeroChavetas++; printf("ID("); 
+
+                                                                while(!isspace(c = getchar())){
+                                                                    printf("%c", c);
+                                                                }
+                                                                printf(")\n");  
+                                                                }
+
+
+
+
+
+
 <NAME_ID>{STRLIT}                                               ;
-<NAME
 <NOME_CLASS>({STRLIT}|" ")                                      {print("SAIR ID"); BEGIN CHAVETAS_CLASS;}
-<CHAVETAS_CLASS>
 
 
 
