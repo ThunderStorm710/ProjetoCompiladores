@@ -18,14 +18,14 @@ INTLIT                                                          ("0"|{NON_ZERO_D
 REALLIT                                                         ({SEQ_C0}+|{DIGIT}+).({SEQ_C0}+|{DIGIT}+)({EXPONENTIAL}[+,-](({SEQ_C0}+|{DIGIT}+)))?
 ID                                                              (_|$|{LETRA})+({DIGIT}|{LETRA}|_|$)*
 STRLIT                                                          [\f,\n,\t,\\,\",\r]([\f,\n,\t,\\,\",\r])+
-
+ESPACOS                                                         ({STRLIT}|" ")+
 
 %X CLASS PAR_RETO PAR CHAVETAS COMENTARIO NAME_ID METODO
 
 %%
 "class"                                                         {printf("CLASS\n"); BEGIN CLASS;}
 
-<CLASS>({STRLIT}|" "){ID}({STRLIT}|" ")"{"                      {numeroChavetas++; printf("ID("); 
+<CLASS>{ESPACOS}{ID}                      {numeroChavetas++; printf("ID("); 
 
                                                                 while(!isspace(c = getchar())){
                                                                     printf("%c", c);
@@ -33,13 +33,13 @@ STRLIT                                                          [\f,\n,\t,\\,\",
                                                                 printf(")\n");  
                                                                 }
 
-<CLASS>[^{ID}]                                                  {printf("ERRO CLASSE SEM NOME");BEGIN 0;}
+<CLASS>[^{ID}]                                                  {printf("ERRO CLASSE SEM NOME");exit(1);}
 
 
 <CLASS>"public"                                                 {printf("PUBLIC\n"); BEGIN METODO;}
 <METODO>({STRLIT}|" ")"static"                                  {printf("STATIC\n");}
-<METODO>[^(({STRLIT}|" ")"static")]                             {printf("ERRO FALTA STATIC");BEGIN 0;}
-<METODO>[^(({STRLIT}|" ")["int","double","boolean","void"])]    {printf("ERRO FALTA TIPO RETORNO");BEGIN 0;}
+<METODO>[^(({STRLIT}|" ")"static")]                             {printf("ERRO FALTA STATIC");   exit(1);}
+<METODO>[^(({STRLIT}|" ")["int","double","boolean","void"])]    {printf("ERRO FALTA TIPO RETORNO");exit(1);}
 <METODO>({STRLIT}|" ")"int"                                     {printf("INT\n");}
 <METODO>({STRLIT}|" ")"double"                                  {printf("DOUBLE\n");}
 <METODO>({STRLIT}|" ")"boolean"                                 {printf("BOOLEAN\n");}
