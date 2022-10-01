@@ -56,11 +56,11 @@ ESPACOS                                                         ({STRLIT}|" ")+
 <IF_STAT>"("                                                     {printf("LPAR\n");}
 <IF_STAT>")"                                                     {printf("RPAR\n")}
 <IF_STAT>"=="                                                    {printf("EQ\n")}
-<IF_STAT>"!="                                                    {printf("EQ\n")}
-<IF_STAT>">="                                                    {printf("EQ\n")}
-<IF_STAT>"=="                                                    {printf("EQ\n")}
-<IF_STAT>"=="                                                    {printf("EQ\n")}
-<IF_STAT>"=="                                                    {printf("EQ\n")}
+<IF_STAT>"!="                                                    {printf("NE\n")}
+<IF_STAT>">="                                                    {printf("GE\n")}
+<IF_STAT>">"                                                    {printf("GT\n")}
+<IF_STAT>"<"                                                    {printf("LT\n")}
+<IF_STAT>"<="                                                    {printf("LE\n")}
 <IF_STAT>"=="                                                    {printf("EQ\n")}
 
 
