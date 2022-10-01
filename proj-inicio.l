@@ -20,50 +20,50 @@ ID                                                              (_|$|{LETRA})+({
 STRLIT                                                          [\f,\n,\t,\\,\",\r]([\f,\n,\t,\\,\",\r])+
 ESPACOS                                                         ({STRLIT}|" ")+
 
-%X CLASS PAR_RETO PAR CHAVETAS COMENTARIO NAME_ID METODO
+%X CLASS PAR_RETO PAR CHAVETAS COMENTARIO NAME_ID METODO IF_STAT
 
 %%
 "class"                                                         {printf("CLASS\n"); BEGIN CLASS;}
 
-<CLASS>{ESPACOS}{ID}                      {numeroChavetas++; printf("ID("); 
+<CLASS>{ESPACOS}                                                ;
+<CLASS>{ID}                                                     {printf("ID(%s)\n",yytext);}
+<CLASS>"{"                                                      {printf("LBRACE\n");numeroChavetas++;}
+<CLASS>"}"                                                      {printf("LBRACE\n");numeroChavetas--;}
 
-                                                                while(!isspace(c = getchar())){
-                                                                    printf("%c", c);
-                                                                }
-                                                                printf(")\n");  
-                                                                }
+    /*<CLASS>[^{ID}]                                                  {printf("ERRO CLASSE SEM NOME");exit(1);}*/
 
-<CLASS>[^{ID}]                                                  {printf("ERRO CLASSE SEM NOME");exit(1);}
 
 
 <CLASS>"public"                                                 {printf("PUBLIC\n"); BEGIN METODO;}
-<METODO>({STRLIT}|" ")"static"                                  {printf("STATIC\n");}
-<METODO>[^(({STRLIT}|" ")"static")]                             {printf("ERRO FALTA STATIC");   exit(1);}
-<METODO>[^(({STRLIT}|" ")["int","double","boolean","void"])]    {printf("ERRO FALTA TIPO RETORNO");exit(1);}
-<METODO>({STRLIT}|" ")"int"                                     {printf("INT\n");}
-<METODO>({STRLIT}|" ")"double"                                  {printf("DOUBLE\n");}
-<METODO>({STRLIT}|" ")"boolean"                                 {printf("BOOLEAN\n");}
-<METODO>({STRLIT}|" ")"void"                                    {printf("VOID\n");}
-<CLASS>({STRLIT}|" "){ID}({STRLIT}|" ")"{"                      {numeroChavetas++; printf("ID(");} 
-
-<METODO>({STRLIT}|" "){ID}"()"({STRLIT}|" ")?"{"                {numeroChavetas++; printf("ID("); 
-
-
-<METODO>({STRLIT}|" "){ID}["()","int","boolean","double"]            ({STRLIT}|" ")"{"                      {numeroChavetas++; printf("ID("); 
-
-                                                                while(!isspace(c = getchar())){
-                                                                    printf("%c", c);
-                                                                }
-                                                                printf(")\n");  
-                                                                }
+<METODO>{ESPACOS}                                               ;
+<METODO>"static"                                                {printf("STATIC\n");}
+<METODO>"int"                                                   {printf("INT\n");}
+<METODO>"double"                                                {printf("DOUBLE\n");}
+<METODO>"boolean"                                               {printf("BOOLEAN\n");}
+<METODO>"void"                                                  {printf("VOID\n");}
+<METODO>{ID}                                                    {printf("ID(%s)\n",yytext);}
+<METODO>"("                                                     {printf("LPAR\n");}
+<METODO>")"                                                     {printf("RPAR\n")}
+<METODO>"{"                                                     {printf("LBRACE\n");numeroChavetas++;}
+<METODO>"}"                                                     {printf("LBRACE\n");numeroChavetas--;}
 
 
 
+        /*<METODO>[^(({STRLIT}|" ")"static")]                             {printf("ERRO FALTA STATIC");   exit(1);}
+<METODO>[^(({STRLIT}|" ")["int","double","boolean","void"])]    {printf("ERRO FALTA TIPO RETORNO");exit(1);} */
+<METODO>"if"                                                     {printf("IF\n");BEGIN IF_STAT;}
+<IF_STAT>{ESPACOS}                                               ;
+<IF_STAT>"("                                                     {printf("LPAR\n");}
+<IF_STAT>")"                                                     {printf("RPAR\n")}
+<IF_STAT>"=="                                                    {printf("EQ\n")}
+<IF_STAT>"!="                                                    {printf("EQ\n")}
+<IF_STAT>">="                                                    {printf("EQ\n")}
+<IF_STAT>"=="                                                    {printf("EQ\n")}
+<IF_STAT>"=="                                                    {printf("EQ\n")}
+<IF_STAT>"=="                                                    {printf("EQ\n")}
+<IF_STAT>"=="                                                    {printf("EQ\n")}
 
 
-
-<NAME_ID>{STRLIT}                                               ;
-<NOME_CLASS>({STRLIT}|" ")                                      {print("SAIR ID"); BEGIN CHAVETAS_CLASS;}
 
 
 
