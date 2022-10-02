@@ -52,7 +52,7 @@ RESERVED                                                        ("++"|"--"|break
 <CLASS>"{"                                                      {printf("LBRACE\n");numeroChavetas++;}
 <CLASS>"}"                                                      {printf("LBRACE\n");numeroChavetas--;}
     
-"/*"                    {BEGIN COMMENT;commentBegin[0]=line;commentBegin[1]=col;col+=yyleng;}
+"/*"                    {BEGIN COMENTARIO;commentBegin[0]=line;commentBegin[1]=col;col+=yyleng;}
 <COMMENT>{NEWLINE}      {line++;col=1;}
 <COMMENT>.              {col+=yyleng;}
 <COMMENT><<EOF>>        {BEGIN 0;printf("Line %i, col %i: unterminated comment\n",commentBegin[0],commentBegin[1]);}
