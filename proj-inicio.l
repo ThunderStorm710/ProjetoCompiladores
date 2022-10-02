@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
 #define FALSE 0
 #define TRUE 1
 
@@ -41,6 +40,10 @@ RESERVED                                                        ("++"|"--"|break
 
 %X CLASS PAR_RETO PAR CHAVETAS COMENTARIO NAME_ID METODO IF_STAT
 
+
+
+/****************************************************** REGRAS *************************************************/
+
 %%
 "class"                                                         {printf("CLASS\n"); BEGIN CLASS;}
 
@@ -48,9 +51,12 @@ RESERVED                                                        ("++"|"--"|break
 <CLASS>{ID}                                                     {printf("ID(%s)\n",yytext);}
 <CLASS>"{"                                                      {printf("LBRACE\n");numeroChavetas++;}
 <CLASS>"}"                                                      {printf("LBRACE\n");numeroChavetas--;}
-
-    /*<CLASS>[^{ID}]                                                  {printf("ERRO CLASSE SEM NOME");exit(1);}*/
-
+    
+"/*"                    {BEGIN COMMENT;commentBegin[0]=line;commentBegin[1]=col;col+=yyleng;}
+<COMMENT>{NEWLINE}      {line++;col=1;}
+<COMMENT>.              {col+=yyleng;}
+<COMMENT><<EOF>>        {BEGIN 0;printf("Line %i, col %i: unterminated comment\n",commentBegin[0],commentBegin[1]);}
+<COMMENT>"*/"           {BEGIN 0;col+=yyleng;}
 
 
 <CLASS>"public"                                                 {printf("PUBLIC\n"); BEGIN METODO;}
