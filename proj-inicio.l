@@ -3,22 +3,41 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
+#define FALSE 0
+#define TRUE 1
+
 int numeroChavetas = 0;
 char c;
+
+int isPrinted=false;
+int line=1;
+int col=1;
+int commentBegin[2];
 %}
 
-NON_ZERO_DIGIT                                                  [1-9]
-DIGIT                                                           [0-9]
-LETRA                                                           [A-Za-z]
-NUM                                                             ("0"|([1-9]+))
-EXPONENTIAL                                                     "e"|"E"
+/************************************************TOKEN SIMPLES************************************************/
+
 SEQ_S0                                                          [1-9]"_"+[0-9]
 SEQ_C0                                                          [0-9]"_"+[0-9]
-INTLIT                                                          ("0"|{NON_ZERO_DIGIT}{DIGIT}*|{SEQ_S0})
+EXPONENTIAL                                                     "e"|"E"
+LETRA                                                           [A-Za-z]        
+NUM                                                             ("0"|([1-9]+)) 
+NON_ZERO_DIGIT                                                  [1-9]
+DIGIT                                                           [0-9]         
+
+/***********************************************TOKEN COMPOSTOS***********************************************/
+
+ID                                                              [{LETRA},_,$][{LETRA},{DIGIT},_,$]* 
+INTLIT                                                          0|({NON_ZERO_DIGIT}+(("_")*{DIGIT}*)*)
 REALLIT                                                         ({SEQ_C0}+|{DIGIT}+).({SEQ_C0}+|{DIGIT}+)({EXPONENTIAL}[+,-](({SEQ_C0}+|{DIGIT}+)))?
-ID                                                              (_|$|{LETRA})+({DIGIT}|{LETRA}|_|$)*
-STRLIT                                                          [\f,\n,\t,\\,\",\r]([\f,\n,\t,\\,\",\r])+
-ESPACOS                                                         ({STRLIT}|" ")+
+STRLIT                                                          "\""([{LETRA},{DIGIT},\f,\n,\t,\\,\r])*"\"" 
+ESPACO                                                          [" "|"\t"]+
+COMENTARIO_LINHA                                                "//".*
+COMENTARIO_MULTILINHA                                           "/**"."**/"
+CR_LN                                                           ("\n"|"\r\n"|"\r")
+RESERVED                                                        ("++"|"--"|break|float|if|long|static|return|public|class|main|)
+
 
 %X CLASS PAR_RETO PAR CHAVETAS COMENTARIO NAME_ID METODO IF_STAT
 
