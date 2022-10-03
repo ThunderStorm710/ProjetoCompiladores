@@ -19,12 +19,11 @@ DIGIT                                                           [0-9]
 ID                                                              ({LETRA}|"_"|"$")({LETRA}|"_"|"$"|{DIGIT})* 
 REALLIT                                                         ({INTLIT}*("."{INTLIT}*)?)?(("E"|"e")("+"|"-")?{INTLIT}+)*
 INTLIT                                                          ({DIGIT}+(("_")*{DIGIT}+)*)
-STRLIT                                                          "\""([^{CR_LN}]|"\n"|"\t"|" "|{LETRA}|{DIGIT})*"\""
+STR_ERROR                                                       "\""(\\n|\\t|\\r|\\f|" "|{LETRA}|{DIGIT})*[<<EOF>>\n]
+STRLIT                                                          "\""(\\n|\\t|\\r|\\f|" "|{LETRA}|{DIGIT})*"\""
 ESPACOS                                                         [" "|"\t"]+
-COMENTARIO_LINHA                                                "//"[^"\n"]
-COMENTARIO_MULTILINHA                                           "/**"."**/"
-CR_LN                                                           ("\n"|"\r\n"|"\r")
-RESERVED                                                        ("++"|"--"|"break"|"float"|"if"|"long"|"static"|"return"|"public"|"class"|"main"|)
+CR_LN                                                           (\n|\r\n|\r)
+RESERVED                                                        ("System"|"Integer"|"null"|"++"|"--"|"break"|"float"|"long"|"main")
 
 
 %X CLASS COMENTARIO COMENTARIO_SIMPLES STRING
@@ -42,9 +41,12 @@ RESERVED                                                        ("++"|"--"|"brea
 "//"                                                            {BEGIN COMENTARIO_SIMPLES;}
 <COMENTARIO_SIMPLES>{CR_LN}                                     {BEGIN 0;}
 <COMENTARIO_SIMPLES>.                                           ;
-                                                    
 
-"class"                                                         {printf("CLASS\n"); BEGIN CLASS;}
+                                                   
+{STR_ERROR}                                                     {printf("ERRO STR\n");}
+
+"class"                                                         {printf("CLASS\n");}
+{RESERVED}                                                      {printf("RESERVED\n");}
 ","                                                             {printf("COMMA\n");}
 "-"                                                             {printf("MINUS\n");}
 "<"                                                             {printf("LT\n");}
@@ -56,6 +58,7 @@ RESERVED                                                        ("++"|"--"|"brea
 ">="                                                            {printf("GE");}
 "/"                                                             {printf("DIV\n");}
 "*"                                                             {printf("STAR\n");}
+"=="                                                            {printf("EQ\n");}
 "="                                                             {printf("ASSIGN\n");}
 "&&"                                                            {printf("AND\n");}
 ";"                                                             {printf("SEMICOLON\n");}
@@ -78,7 +81,6 @@ RESERVED                                                        ("++"|"--"|"brea
 "double"                                                        {printf("DOUBLE\n");}
 ".length"                                                       {printf("DOTLENGTH\n");}
 "System.out.print"                                              {printf("PRINT\n");}
-"++","--","null","Integer","System"                             {printf("RESERVED\n");}
 "true"|"false"                                                  {printf("BOOLLIT\n");}
 "while"                                                         {printf("WHILE\n");}
 "void"                                                          {printf("VOID\n");}
@@ -91,7 +93,8 @@ RESERVED                                                        ("++"|"--"|"brea
 {INTLIT}                                                        {printf("INTLIT(%s)\n",yytext);}
 {REALLIT}                                                       {printf("REALLIT(%s)\n",yytext);}
 {STRLIT}                                                        {printf("STRLIT(%s)\n",yytext);}
-
+.                                                               ;
+\n                                                              ;
 %%
 
 int main()

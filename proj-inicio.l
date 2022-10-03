@@ -2,98 +2,57 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#define FALSE 0
-#define TRUE 1
-
-int numeroChavetas = 0;
-char c;
-
-int isPrinted=false;
-int line=1;
-int col=1;
-int commentBegin[2];
 %}
 
 /************************************************TOKEN SIMPLES************************************************/
 
+LETRA                                                           [A-Za-z]        
 SEQ_S0                                                          [1-9]"_"+[0-9]
 SEQ_C0                                                          [0-9]"_"+[0-9]
 EXPONENTIAL                                                     "e"|"E"
-LETRA                                                           [A-Za-z]        
 NUM                                                             ("0"|([1-9]+)) 
 NON_ZERO_DIGIT                                                  [1-9]
 DIGIT                                                           [0-9]         
 
 /***********************************************TOKEN COMPOSTOS***********************************************/
 
-ID                                                              [{LETRA},_,$][{LETRA},{DIGIT},_,$]* 
-INTLIT                                                          0|({NON_ZERO_DIGIT}+(("_")*{DIGIT}*)*)
-REALLIT                                                         ({SEQ_C0}+|{DIGIT}+).({SEQ_C0}+|{DIGIT}+)({EXPONENTIAL}[+,-](({SEQ_C0}+|{DIGIT}+)))?
-STRLIT                                                          "\""([{LETRA},{DIGIT},\f,\n,\t,\\,\r])*"\"" 
-ESPACO                                                          [" "|"\t"]+
-COMENTARIO_LINHA                                                "//".*
-COMENTARIO_MULTILINHA                                           "/**"."**/"
-CR_LN                                                           ("\n"|"\r\n"|"\r")
-RESERVED                                                        ("++"|"--"|break|float|if|long|static|return|public|class|main|)
+ID                                                              ({LETRA}|"_"|"$")({LETRA}|"_"|"$"|{DIGIT})* 
+REALLIT                                                         ({INTLIT}*("."{INTLIT}*)?)?(("E"|"e")("+"|"-")?{INTLIT}+)*
+INTLIT                                                          ({DIGIT}+(("_")*{DIGIT}+)*)
+STRLIT                                                          "\""(\\n|\\t|\\r|\\f|" "|{LETRA}|{DIGIT})*"\""
+STR_ERROR                                                       "\""(\\n|\\t|\\r|\\f|" "|{LETRA}|{DIGIT})*(\n|<<EOF>>)
+ESPACOS                                                         [" "|"\t"]+
+CR_LN                                                           (\n|\r\n|\r)
+RESERVED                                                        ("System"|"Integer"|"null"|"++"|"--"|"break"|"float"|"long"|"main")
 
 
-%X CLASS PAR_RETO PAR CHAVETAS COMENTARIO NAME_ID METODO IF_STAT
+%X CLASS COMENTARIO COMENTARIO_SIMPLES STRING
 
 
 
 /****************************************************** REGRAS *************************************************/
 
 %%
+"/*"                                                            {BEGIN COMENTARIO;}
+<COMENTARIO>{CR_LN}                                             ;
+<COMENTARIO>.                                                   ;
+<COMENTARIO><<EOF>>                                             {BEGIN 0;printf("unterminated comment\n");}
+<COMENTARIO>"*/"                                                {BEGIN 0;}
+"//"                                                            {BEGIN COMENTARIO_SIMPLES;}
+<COMENTARIO_SIMPLES>{CR_LN}                                     {BEGIN 0;}
+<COMENTARIO_SIMPLES>.                                           ;
+
+
+"\""                                                        {BEGIN STRING;printf("STRLIT(");}
+<STRING>{CR_LN}                                             {BEGIN 0;printf("unterminated string\n");}
+<STRING>("\n"|"\t"|"\r"|"\f"|" "|{LETRA}|{DIGIT})           {ECHO;}
+<STRING><<EOF>>                                             {BEGIN 0;printf("unterminated string\n");}
+<STRING>"\""                                                {BEGIN 0;printf(")\n");}
+                                                    
+
 "class"                                                         {printf("CLASS\n"); BEGIN CLASS;}
-
-<CLASS>{ESPACOS}                                                ;
-<CLASS>{ID}                                                     {printf("ID(%s)\n",yytext);}
-<CLASS>"{"                                                      {printf("LBRACE\n");numeroChavetas++;}
-<CLASS>"}"                                                      {printf("LBRACE\n");numeroChavetas--;}
-    
-"/*"                    {BEGIN COMENTARIO;commentBegin[0]=line;commentBegin[1]=col;col+=yyleng;}
-<COMMENT>{NEWLINE}      {line++;col=1;}
-<COMMENT>.              {col+=yyleng;}
-<COMMENT><<EOF>>        {BEGIN 0;printf("Line %i, col %i: unterminated comment\n",commentBegin[0],commentBegin[1]);}
-<COMMENT>"*/"           {BEGIN 0;col+=yyleng;}
-
-
-<CLASS>"public"                                                 {printf("PUBLIC\n"); BEGIN METODO;}
-<METODO>{ESPACOS}                                               ;
-<METODO>"static"                                                {printf("STATIC\n");}
-<METODO>"int"                                                   {printf("INT\n");}
-<METODO>"double"                                                {printf("DOUBLE\n");}
-<METODO>"boolean"                                               {printf("BOOLEAN\n");}
-<METODO>"void"                                                  {printf("VOID\n");}
-<METODO>{ID}                                                    {printf("ID(%s)\n",yytext);}
-<METODO>"("                                                     {printf("LPAR\n");}
-<METODO>")"                                                     {printf("RPAR\n")}
-<METODO>"{"                                                     {printf("LBRACE\n");numeroChavetas++;}
-<METODO>"}"                                                     {printf("LBRACE\n");numeroChavetas--;}
-
-
-
-        /*<METODO>[^(({STRLIT}|" ")"static")]                             {printf("ERRO FALTA STATIC");   exit(1);}
-<METODO>[^(({STRLIT}|" ")["int","double","boolean","void"])]    {printf("ERRO FALTA TIPO RETORNO");exit(1);} */
-<METODO>"if"                                                     {printf("IF\n");BEGIN IF_STAT;}
-<IF_STAT>{ESPACOS}                                               ;
-<IF_STAT>"("                                                     {printf("LPAR\n");}
-<IF_STAT>")"                                                     {printf("RPAR\n")}
-<IF_STAT>"=="                                                    {printf("EQ\n")}
-<IF_STAT>"!="                                                    {printf("NE\n")}
-<IF_STAT>">="                                                    {printf("GE\n")}
-<IF_STAT>">"                                                    {printf("GT\n")}
-<IF_STAT>"<"                                                    {printf("LT\n")}
-<IF_STAT>"<="                                                    {printf("LE\n")}
-<IF_STAT>"=="                                                    {printf("EQ\n")}
-
-
-
-
-
+{RESERVED}                                                      {printf("RESERVED\n");}
 ","                                                             {printf("COMMA\n");}
-{STRLIT}                                                        {printf("STRLIT\n");}
 "-"                                                             {printf("MINUS\n");}
 "<"                                                             {printf("LT\n");}
 "["                                                             {printf("LSQ\n");}
@@ -126,7 +85,6 @@ RESERVED                                                        ("++"|"--"|break
 "double"                                                        {printf("DOUBLE\n");}
 ".length"                                                       {printf("DOTLENGTH\n");}
 "System.out.print"                                              {printf("PRINT\n");}
-"++","--","null","Integer","System"                             {printf("RESERVED\n");}
 "true"|"false"                                                  {printf("BOOLLIT\n");}
 "while"                                                         {printf("WHILE\n");}
 "void"                                                          {printf("VOID\n");}
@@ -135,10 +93,9 @@ RESERVED                                                        ("++"|"--"|break
 "return"                                                        {printf("RETURN\n");}
 "public"                                                        {printf("PUBLIC\n");}
 "Integer.parseInt"                                              {printf("PARSEINT\n");}
-{ID}                                                            {printf("ID\n");}
-{INTLIT}                                                        {printf("INTLIT\n");} //({NUM}|"_"+|{NON_ZERO_DIGIT}"_"+{DIGIT}*)                       {printf("INTLIT\n");}
-{REALLIT}                                                       {printf("REALLIT\n");}
-.                                                               ;
+{ID}                                                            {printf("ID(%s)\n",yytext);}
+{INTLIT}                                                        {printf("INTLIT(%s)\n",yytext);}
+{REALLIT}                                                       {printf("REALLIT(%s)\n",yytext);}
 
 %%
 
