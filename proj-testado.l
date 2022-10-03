@@ -19,26 +19,29 @@ DIGIT                                                           [0-9]
 ID                                                              ({LETRA}|"_"|"$")({LETRA}|"_"|"$"|{DIGIT})* 
 REALLIT                                                         ({INTLIT}*("."{INTLIT}*)?)?(("E"|"e")("+"|"-")?{INTLIT}+)*
 INTLIT                                                          ({DIGIT}+(("_")*{DIGIT}+)*)
-STRLIT                                                          \"({LETRA}|{DIGIT}|"\f"|"\n"|"\t"|"\\"|"\r")*\" 
+STRLIT                                                          "\""([^{CR_LN}]|"\n"|"\t"|" "|{LETRA}|{DIGIT})*"\""
 ESPACOS                                                         [" "|"\t"]+
-COMENTARIO_LINHA                                                "//".*
+COMENTARIO_LINHA                                                "//"[^"\n"]
 COMENTARIO_MULTILINHA                                           "/**"."**/"
 CR_LN                                                           ("\n"|"\r\n"|"\r")
 RESERVED                                                        ("++"|"--"|"break"|"float"|"if"|"long"|"static"|"return"|"public"|"class"|"main"|)
 
 
-%X CLASS PAR_RETO PAR CHAVETAS COMENTARIO NAME_ID METODO IF_STAT
+%X CLASS PAR_RETO PAR CHAVETAS COMENTARIO NAME_ID METODO IF_STAT STRING
 
 
 
 /****************************************************** REGRAS *************************************************/
 
 %%
+"/*"                    {BEGIN COMENTARIO;}
+<COMENTARIO>{CR_LN}         ;
+<COMENTARIO>.               ;
+<COMENTARIO><<EOF>>         {BEGIN 0;printf("unterminated comment\n");}
+<COMENTARIO>"*/"            {BEGIN 0;}
+
 "class"                                                         {printf("CLASS\n"); BEGIN CLASS;}
-
-
 ","                                                             {printf("COMMA\n");}
-{STRLIT}                                                        {printf("STRLIT(%s)\n",yytext);}
 "-"                                                             {printf("MINUS\n");}
 "<"                                                             {printf("LT\n");}
 "["                                                             {printf("LSQ\n");}
@@ -83,6 +86,7 @@ RESERVED                                                        ("++"|"--"|"brea
 {ID}                                                            {printf("ID(%s)\n",yytext);}
 {INTLIT}                                                        {printf("INTLIT(%s)\n",yytext);}
 {REALLIT}                                                       {printf("REALLIT(%s)\n",yytext);}
+{STRLIT}                                                        {printf("STRLIT(%s)\n",yytext);}
 
 %%
 
