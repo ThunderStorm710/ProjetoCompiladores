@@ -27,18 +27,22 @@ CR_LN                                                           ("\n"|"\r\n"|"\r
 RESERVED                                                        ("++"|"--"|"break"|"float"|"if"|"long"|"static"|"return"|"public"|"class"|"main"|)
 
 
-%X CLASS PAR_RETO PAR CHAVETAS COMENTARIO NAME_ID METODO IF_STAT STRING
+%X CLASS COMENTARIO COMENTARIO_SIMPLES STRING
 
 
 
 /****************************************************** REGRAS *************************************************/
 
 %%
-"/*"                    {BEGIN COMENTARIO;}
-<COMENTARIO>{CR_LN}         ;
-<COMENTARIO>.               ;
-<COMENTARIO><<EOF>>         {BEGIN 0;printf("unterminated comment\n");}
-<COMENTARIO>"*/"            {BEGIN 0;}
+"/*"                                                            {BEGIN COMENTARIO;}
+<COMENTARIO>{CR_LN}                                             ;
+<COMENTARIO>.                                                   ;
+<COMENTARIO><<EOF>>                                             {BEGIN 0;printf("unterminated comment\n");}
+<COMENTARIO>"*/"                                                {BEGIN 0;}
+"//"                                                            {BEGIN COMENTARIO_SIMPLES;}
+<COMENTARIO_SIMPLES>{CR_LN}                                     {BEGIN 0;}
+<COMENTARIO_SIMPLES>.                                           ;
+                                                    
 
 "class"                                                         {printf("CLASS\n"); BEGIN CLASS;}
 ","                                                             {printf("COMMA\n");}
