@@ -17,14 +17,14 @@ DIGIT                                                           [0-9]
 /***********************************************TOKEN COMPOSTOS***********************************************/
 
 ID                                                              ({LETRA}|"_"|"$")({LETRA}|"_"|"$"|{DIGIT})* 
-REALLIT                                                         ({INTLIT}+"."{INTLIT}*|{INTLIT}+"."{INTLIT}*)?(("E"|"e")("+"|"-"){INTLIT}+)*
-INTLIT                                                          "0"|({NON_ZERO_DIGIT}+(("_")*{DIGIT}*)*)
-STRLIT                                                          "\""([{LETRA},{DIGIT},\f,\n,\t,\\,\r])*"\"" 
+REALLIT                                                         ({INTLIT}*("."{INTLIT}*)?)?(("E"|"e")("+"|"-")?{INTLIT}+)*
+INTLIT                                                          ({DIGIT}+(("_")*{DIGIT}+)*)
+STRLIT                                                          \"({LETRA}|{DIGIT}|"\f"|"\n"|"\t"|"\\"|"\r")*\" 
 ESPACOS                                                         [" "|"\t"]+
 COMENTARIO_LINHA                                                "//".*
 COMENTARIO_MULTILINHA                                           "/**"."**/"
 CR_LN                                                           ("\n"|"\r\n"|"\r")
-RESERVED                                                        ("++"|"--"|break|float|if|long|static|return|public|class|main|)
+RESERVED                                                        ("++"|"--"|"break"|"float"|"if"|"long"|"static"|"return"|"public"|"class"|"main"|)
 
 
 %X CLASS PAR_RETO PAR CHAVETAS COMENTARIO NAME_ID METODO IF_STAT
@@ -38,7 +38,7 @@ RESERVED                                                        ("++"|"--"|break
 
 
 ","                                                             {printf("COMMA\n");}
-{STRLIT}                                                        {printf("STRLIT\n");}
+{STRLIT}                                                        {printf("STRLIT(%s)\n",yytext);}
 "-"                                                             {printf("MINUS\n");}
 "<"                                                             {printf("LT\n");}
 "["                                                             {printf("LSQ\n");}
