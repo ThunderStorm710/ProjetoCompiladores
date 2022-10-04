@@ -7,11 +7,6 @@
 /************************************************TOKEN SIMPLES************************************************/
 
 LETRA                                                           [A-Za-z]        
-SEQ_S0                                                          [1-9]"_"+[0-9]
-SEQ_C0                                                          [0-9]"_"+[0-9]
-EXPONENTIAL                                                     "e"|"E"
-NUM                                                             ("0"|([1-9]+)) 
-NON_ZERO_DIGIT                                                  [1-9]
 DIGIT                                                           [0-9]         
 
 /***********************************************TOKEN COMPOSTOS***********************************************/
@@ -21,13 +16,11 @@ REALLIT                                                         ({INTLIT}*("."{I
 INTLIT                                                          ({DIGIT}+(("_")*{DIGIT}+)*)
 STR_ERROR                                                       "\""(\\n|\\t|\\r|\\f|" "|{LETRA}|{DIGIT})*[<<EOF>>\n]
 STRLIT                                                          "\""(\\n|\\t|\\r|\\f|" "|{LETRA}|{DIGIT})*"\""
-ESPACOS                                                         [" "|"\t"]+
 CR_LN                                                           (\n|\r\n|\r)
 RESERVED                                                        ("System"|"Integer"|"null"|"++"|"--"|"break"|"float"|"long"|"main")
 
 
 %X CLASS COMENTARIO COMENTARIO_SIMPLES STRING
-
 
 
 /****************************************************** REGRAS *************************************************/
