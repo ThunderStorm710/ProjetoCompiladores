@@ -2,114 +2,153 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 %}
 
-%%
-[A-Za-z]                                letra
-[1-9]                                   NATURAL
-[0-9]                                   NUMERO
-(_|$|letra)+(NUMERO|letra|_|$)*         ID
-(0|(NATURAL+|"_"+)NATURAL)              INTLIT
-                                        REALLIT
-[\f|\n|\t|\\|\"|\r]+                    STRLIT
-"true" | "false"                        BOOLLIT                 
-"&&"                                    AND                     
-"="                                     ASSIGN                  
-"*"                                     STAR                    
-","                                     COMMA                   
-"/"                                     DIV                     
-"=="                                    EQ                      
-">="                                    GE                      
-">"                                     GT                      
-"{"                                     LBRACE                  
-"<="                                    LE                      
-"("                                     LPAR                    
-"["                                     LSQ                     
-"<"                                     LT                      
-"-"                                     MINUS                   
-"%"                                     MOD                     
-"!="                                    NE                      
-"!"                                     NOT                     
-"||"                                    OR                      
-"+"                                     PLUS                    
-"}"                                     RBRACE                  
-")"                                     RPAR                    
-"]"                                     RSQ                     
-";"                                     SEMICOLON               
-"->"                                    ARROW                  
-"<<"                                    LSHIFT                  
-">>"                                    RSHIFT                  
-"ˆ"                                     XOR                     
-"boolean"                               BOOL                    
-"class"                                 CLASS                   
-".length"                               DOTLENGTH               
-"double"                                DOUBLE                  
-"else"                                  ELSE                    
-"if"                                    IF                      
-"int"                                   INT                     
-"System.out.print"                      PRINT                   
-"Integer.parseInt"                      PARSEINT                
-"public"                                PUBLIC                  
-"return"                                RETURN                  
-"static"                                STATIC                  
-"String"                                STRING                  
-"void"                                  VOID                    
-"while"                                 WHILE                   
-%%
+/************************************************TOKEN SIMPLES**********************************************************************/
 
-%X ESTADO_DOC ESTADO_ITEM ESTADO_ENUM  ESTADO_CHAPTER ESTADO_TITLE ESTADO_SECCAO
-%%
-"\\begin{document}" {BEGIN ESTADO_DOC;}
-. ; //caso seja codigo Java
-\n ; //nao faz nada
-<ESTADO_DOC>"\end{document}".* {BEGIN 0; numeroCapitulo = 0; numeroEnumerate = 0; numeroSeccao = 0;}
+LETRA                                                  [A-Za-z]        
+DIGIT                                                  [0-9]   
+COMMA                                                  ","
+MINUS                                                  "-"
+LT                                                     "<"
+LSQ                                                    "["
+LPAR                                                   "("
+LE                                                     "<="
+LBRACE                                                 "{"
+GT                                                     ">"
+GE                                                     ">="
+DIV                                                    "/"
+STAR                                                   "*"
+EQ                                                     "=="
+ASSIGN                                                 "="
+AND                                                    "&&"
+SEMICOLON                                              ";"
+RSQ                                                    "]"
+RPAR                                                   ")"
+RBRACE                                                 "}"
+PLUS                                                   "+"
+OR                                                     "||"
+NOT                                                    "!"
+NE                                                     "!="
+MOD                                                    "%"
+XOR                                                    "ˆ"
+RSHIFT                                                 ">>"
+LSHIFT                                                 "<<"
+ARROW                                                  "->"
+BOOL                                                   boolean
+INT                                                    int
+IF                                                     if
+ELSE                                                   else
+DOUBLE                                                 double
+DOTLENGTH                                              .length
+PRINT                                                  System.out.print
+BOOLLIT                                                true|false
+WHILE                                                  while
+VOID                                                   void
+STRING                                                 String
+STATIC                                                 static
+RETURN                                                 return
+PUBLIC                                                 public
+PARSEINT                                               Integer.parseInt   
+CLASS                                                  class 
 
-<ESTADO_DOC>\\"begin{itemize}" {BEGIN ESTADO_ITEM;}
-<ESTADO_DOC>"\\begin{enumerate}" {BEGIN ESTADO_ENUM;}
+/***********************************************TOKEN COMPOSTOS*********************************************************************/
 
-<ESTADO_DOC>"\\title{"                                                      {BEGIN ESTADO_TITLE;} //<ESTADO_DOC>"\\title{"[^}]*"}" {for (int i = 7; i < yyleng-1; i++){printf("%c", toupper(yytext[i]));} printf("\n");}
-<ESTADO_DOC>"\\chapter{"                                                    {BEGIN ESTADO_CHAPTER;printf("%d.  ",++numeroCapitulo);} //<ESTADO_DOC>"\\title{"[^}]*"}" {for (int i = 7; i < yyleng-1; i++){printf("%c", toupper(yytext[i]));} printf("\n");}
-<ESTADO_DOC>"\section{"                                                     {BEGIN ESTADO_SECCAO;printf("\n%d.%d.   %s", numeroCapitulo, ++numeroSeccao, &yytext[8]);}
-<ESTADO_DOC>"\\"                                                            ;
-<ESTADO_DOC>.                                                               ECHO;
+ID                                                     ({LETRA}|"_"|"$")({LETRA}|"_"|"$"|{DIGIT})* 
+REALLIT                                                ({INTLIT}*("."{INTLIT}*)?)?(("E"|"e")("+"|"-")?{INTLIT}+)*
+INTLIT                                                 ({DIGIT}+(("_")*{DIGIT}+)*)
+STR                                                    (\\n|\\t|\\r|\\f|" "|{LETRA}|{DIGIT})*
+CR_LN                                                  (\n|\r\n|\r)
+RESERVED                                               ("System"|"Integer"|"null"|"++"|"--"|"break")
 
 
-<ESTADO_TITLE>[a-z]                                                         {printf("%c", toupper(yytext[0]));}
-<ESTADO_TITLE>"}"                                                           {BEGIN ESTADO_DOC;}
-<ESTADO_TITLE>[ \t\n]+                                                      {printf(" ");}
-<ESTADO_TITLE>.                                                             ECHO;
+%X COMENTARIO COMENTARIO_SIMPLES STRING STRING_AFTER_ERROR
 
 
-<ESTADO_SECCAO>"}"                                                          {BEGIN ESTADO_DOC;}
-<ESTADO_SECCAO>[ \t\n]+                                                     {printf(" ");}
-<ESTADO_SECCAO>.                                                            ECHO;
-
-
-<ESTADO_CHAPTER>"}"                                                         {BEGIN ESTADO_DOC;}
-<ESTADO_CHAPTER>[ \t\n]+                                                    {printf(" ");}
-<ESTADO_CHAPTER>.                                                           ECHO;
-
-
-<ESTADO_ITEM>"\\item"                                                        {printf("\n.");}
-<ESTADO_ITEM>"\\end{itemize}"                                                {BEGIN ESTADO_DOC;}
-<ESTADO_ITEM>[a-z]                                                           {printf("%c", yytext[0]);}
-<ESTADO_ITEM>[ \t\n]+                                                        {printf(" ");}
-
-
-
-<ESTADO_ENUM>[a-z]                                                           {printf("%c", yytext[0]);}
-<ESTADO_ENUM>[ \t\n]+                                                        {printf(" ");}
-<ESTADO_ENUM>"\\item"                                                        {printf("\n%d-", ++numeroEnumerate);}
-<ESTADO_ENUM>"\\end{enumerate}".*                                            {BEGIN ESTADO_DOC; printf("\n"); numeroEnumerate = 0;}
+/****************************************************** REGRAS *********************************************************************/
 
 %%
+"/*"                                                   {BEGIN COMENTARIO;}
+<COMENTARIO>{CR_LN}                                    ;
+<COMENTARIO>.                                          ;
+<COMENTARIO><<EOF>>                                    {BEGIN 0;printf("unterminated comment\n");}
+<COMENTARIO>"*/"                                       {BEGIN 0;}
+
+"//"                                                   {BEGIN COMENTARIO_SIMPLES;}
+<COMENTARIO_SIMPLES>{CR_LN}                            {BEGIN 0;}
+<COMENTARIO_SIMPLES>.                                  ;
+
+"\""                                                   {BEGIN STRING;}
+<STRING>({STR})?"\\"[^ntfr]                            {printf("invalid escape sequence (%c%c)\n", yytext[yyleng-2],yytext[yyleng-1]); BEGIN STRING_AFTER_ERROR;}
+<STRING_AFTER_ERROR>"\\"[^ntfr]                        {printf("invalid escape sequence (%c%c)\n", yytext[yyleng-2],yytext[yyleng-1]);}
+<STRING_AFTER_ERROR>{CR_LN}                            {printf("unterminated string literal\n"); BEGIN 0;}
+<STRING_AFTER_ERROR>[^\"]                              ;
+<STRING_AFTER_ERROR>\"                                 {BEGIN 0;}
+<STRING><<EOF>>                                        {printf("unterminated string literal\n"); BEGIN 0;}
+<STRING>{STR}{CR_LN}                                   {printf("unterminated string literal\n"); BEGIN 0;}
+<STRING>{STR}"\""                                      {printf("STRLIT(\"%s)\n",yytext);BEGIN 0;}
+
+
+
+{CLASS}                                                {printf("CLASS\n");}
+{RESERVED}                                             {printf("RESERVED\n");}
+{COMMA}                                                {printf("COMMA\n");}
+{MINUS}                                                {printf("MINUS\n");}
+{LT}                                                   {printf("\n");}
+{LSQ}                                                  {printf("LSQ\n");}
+{LPAR}                                                 {printf("LPAR\n");}
+{LE}                                                   {printf("LE\n");}
+{LBRACE}                                               {printf("LBRACE\n");}
+{GT}                                                   {printf("GT\n");}
+{GE}                                                   {printf("GE");}
+{DIV}                                                  {printf("DIV\n");}
+{STAR}                                                 {printf("STAR\n");}
+{EQ}                                                   {printf("EQ\n");}
+{ASSIGN}                                               {printf("ASSIGN\n");}
+{AND}                                                  {printf("AND\n");}
+{SEMICOLON}                                            {printf("SEMICOLON\n");}
+{RSQ}                                                  {printf("RSQ\n");}
+{RPAR}                                                 {printf("RPAR\n");}
+{RBRACE}                                               {printf("RBRACE\n");}
+{PLUS}                                                 {printf("PLUS\n");}
+{OR}                                                   {printf("OR\n");}
+{NOT}                                                  {printf("NOT\n");}
+{NE}                                                   {printf("NE\n");}
+{MOD}                                                  {printf("MOD\n");}
+{XOR}                                                  {printf("XOR\n");}
+{RSHIFT}                                               {printf("RSHIFT\n");}
+{LSHIFT}                                               {printf("LSHIFT\n");}
+{ARROW}                                                {printf("ARROW\n");}
+{BOOL}                                                 {printf("BOOL\n");}
+{INT}                                                  {printf("INT\n");}
+{IF}                                                   {printf("IF\n");}
+{ELSE}                                                 {printf("ELSE\n");}
+{DOUBLE}                                               {printf("DOUBLE\n");}
+{DOTLENGTH}                                            {printf("DOTLENGTH\n");}
+{PRINT}                                                {printf("PRINT\n");}
+{BOOLLIT}                                              {printf("BOOLLIT\n");}
+{WHILE}                                                {printf("WHILE\n");}
+{VOID}                                                 {printf("VOID\n");}
+{STRING}                                               {printf("STRING\n");}
+{STATIC}                                               {printf("STATIC\n");}
+{RETURN}                                               {printf("RETURN\n");}
+{PUBLIC}                                               {printf("PUBLIC\n");}
+{PARSEINT}                                             {printf("PARSEINT\n");}
+{ID}                                                   {printf("ID(%s)\n",yytext);}
+{INTLIT}                                               {printf("INTLIT(%s)\n",yytext);}
+{REALLIT}                                              {printf("REALLIT(%s)\n",yytext);}
+.                                                      ;
+\n                                                     ;
+%%
+
 int main()
 {
-yylex(); return 0;
+yylex();
+return 0;
 }
-int yywrap() {
+
+int yywrap()
+{
 return 1;
 }
-
-
-
