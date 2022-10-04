@@ -43,7 +43,7 @@ RESERVED                                                        ("System"|"Integ
 <COMENTARIO_SIMPLES>.                                           ;
 
                                                    
-{STR_ERROR}                                                     {printf("ERRO STR\n");}
+{STR_ERROR}                                                     {printf("unterminated string literal\n");}
 
 "class"                                                         {printf("CLASS\n");}
 {RESERVED}                                                      {printf("RESERVED\n");}
