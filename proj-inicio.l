@@ -4,24 +4,19 @@
 #include <stdlib.h>
 %}
 
-/************************************************TOKEN SIMPLES************************************************/
+/************************************************TOKEN SIMPLES**********************************************************************/
 
 LETRA                                                           [A-Za-z]        
-SEQ_S0                                                          [1-9]"_"+[0-9]
-SEQ_C0                                                          [0-9]"_"+[0-9]
-EXPONENTIAL                                                     "e"|"E"
-NUM                                                             ("0"|([1-9]+)) 
-NON_ZERO_DIGIT                                                  [1-9]
 DIGIT                                                           [0-9]         
 
-/***********************************************TOKEN COMPOSTOS***********************************************/
+/***********************************************TOKEN COMPOSTOS*********************************************************************/
 
 ID                                                              ({LETRA}|"_"|"$")({LETRA}|"_"|"$"|{DIGIT})* 
 REALLIT                                                         ({INTLIT}*("."{INTLIT}*)?)?(("E"|"e")("+"|"-")?{INTLIT}+)*
 INTLIT                                                          ({DIGIT}+(("_")*{DIGIT}+)*)
+STR                                                             (\\n|\\t|\\r|\\f|" "|{LETRA}|{DIGIT})*
+STR_ERROR                                                       "\""(\\n|\\t|\\r|\\f|" "|{LETRA}|{DIGIT})*(<<EOF>>|\n)
 STRLIT                                                          "\""(\\n|\\t|\\r|\\f|" "|{LETRA}|{DIGIT})*"\""
-STR_ERROR                                                       "\""(\\n|\\t|\\r|\\f|" "|{LETRA}|{DIGIT})*(\n|<<EOF>>)
-ESPACOS                                                         [" "|"\t"]+
 CR_LN                                                           (\n|\r\n|\r)
 RESERVED                                                        ("System"|"Integer"|"null"|"++"|"--"|"break"|"float"|"long"|"main")
 
@@ -29,8 +24,7 @@ RESERVED                                                        ("System"|"Integ
 %X CLASS COMENTARIO COMENTARIO_SIMPLES STRING
 
 
-
-/****************************************************** REGRAS *************************************************/
+/****************************************************** REGRAS *********************************************************************/
 
 %%
 "/*"                                                            {BEGIN COMENTARIO;}
@@ -42,15 +36,16 @@ RESERVED                                                        ("System"|"Integ
 <COMENTARIO_SIMPLES>{CR_LN}                                     {BEGIN 0;}
 <COMENTARIO_SIMPLES>.                                           ;
 
+"\""                                                            {BEGIN STRING;}
+<STRING>{STR}<<EOF>>                                            {printf("unterminated string literal EOF\n");}
+<STRING>{STR}{CR_LN}                                            {printf("unterminated string literal '\n' \n");}
+<STRING>{STR}"\""                                               {printf("STRLIT('%s')\n",yytext);BEGIN 0;}
 
-"\""                                                        {BEGIN STRING;printf("STRLIT(");}
-<STRING>{CR_LN}                                             {BEGIN 0;printf("unterminated string\n");}
-<STRING>("\n"|"\t"|"\r"|"\f"|" "|{LETRA}|{DIGIT})           {ECHO;}
-<STRING><<EOF>>                                             {BEGIN 0;printf("unterminated string\n");}
-<STRING>"\""                                                {BEGIN 0;printf(")\n");}
-                                                    
 
-"class"                                                         {printf("CLASS\n"); BEGIN CLASS;}
+
+{STR_ERROR}                                                     {printf("unterminated string literal\n");}
+
+"class"                                                         {printf("CLASS\n");}
 {RESERVED}                                                      {printf("RESERVED\n");}
 ","                                                             {printf("COMMA\n");}
 "-"                                                             {printf("MINUS\n");}
@@ -63,6 +58,7 @@ RESERVED                                                        ("System"|"Integ
 ">="                                                            {printf("GE");}
 "/"                                                             {printf("DIV\n");}
 "*"                                                             {printf("STAR\n");}
+"=="                                                            {printf("EQ\n");}
 "="                                                             {printf("ASSIGN\n");}
 "&&"                                                            {printf("AND\n");}
 ";"                                                             {printf("SEMICOLON\n");}
@@ -74,11 +70,11 @@ RESERVED                                                        ("System"|"Integ
 "!"                                                             {printf("NOT\n");}
 "!="                                                            {printf("NE\n");}
 "%"                                                             {printf("MOD\n");}
-"boolean"                                                       {printf("BOOL\n");}
 "ˆ"                                                             {printf("XOR\n");}
 ">>"                                                            {printf("RSHIFT\n");}
 "<<"                                                            {printf("LSHIFT\n");}
 "->"                                                            {printf("ARROW\n");}
+"boolean"                                                       {printf("BOOL\n");}
 "int"                                                           {printf("INT\n");}
 "if"                                                            {printf("IF\n");}
 "else"                                                          {printf("ELSE\n");}
@@ -96,7 +92,9 @@ RESERVED                                                        ("System"|"Integ
 {ID}                                                            {printf("ID(%s)\n",yytext);}
 {INTLIT}                                                        {printf("INTLIT(%s)\n",yytext);}
 {REALLIT}                                                       {printf("REALLIT(%s)\n",yytext);}
-
+{STRLIT}                                                        {printf("STRLIT(%s)\n",yytext);}
+.                                                               ;
+\n                                                              ;
 %%
 
 int main()
