@@ -61,3 +61,6 @@ WHILE = “while”
 RESERVED: palavras reservadas da linguagem Java não utilizadas em Juc bem como o operador
 de incremento (“++”), o operador de decremento (“−−”), o literal “null” e os identificadores
 “Integer” e “System”.
+
+#@£§?'.:´`€ºª~
+
