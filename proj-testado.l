@@ -54,17 +54,16 @@ PARSEINT                                               Integer.parseInt
 CLASS                                                  class 
 
 /***********************************************TOKEN COMPOSTOS*********************************************************************/
-
+SPACE                                                  (\n|\t|\r|\f|" "|\r\n|\\n|\\t|\\r|\\f|\\\\)+
 ID                                                     ({LETRA}|"_"|"$")({LETRA}|"_"|"$"|{DIGIT})* 
-REALLIT                                                ({INTLIT}*("."{INTLIT}*)?)?(("E"|"e")("+"|"-")?{INTLIT}+)*
-INTLIT                                                 ({DIGIT}+(("_")*{DIGIT}+)*)
-STR                                                    (\\n|\\t|\\r|\\f|" "|{LETRA}|{DIGIT})*
+REALLIT                                                ({INTLIT}("."{INTLIT}?)?|"."{INTLIT})(("E"|"e")("+"|"-")?{INTLIT}+)*
+INTLIT                                                 ("0"|{DIGIT}+(("_")*{DIGIT}+)*)
+STR                                                    (\.|[^\r\n\"\\.]|\\n|\\t|\\\\|\\r|\\f)+
 CR_LN                                                  (\n|\r\n|\r)
 RESERVED                                               ("System"|"Integer"|"null"|"++"|"--"|"break")
-ESPACO                                                 (\n|\t|\r|\f|" "|\r\n|\\n|\\t|\\r|\\f)+
+ESCAPE                                                 "\\"[^(n|t|f|r)]
 
 %X COMENTARIO COMENTARIO_SIMPLES STRING STRING_AFTER_ERROR
-
 
 /****************************************************** REGRAS *********************************************************************/
 
@@ -79,21 +78,24 @@ ESPACO                                                 (\n|\t|\r|\f|" "|\r\n|\\n
 <COMENTARIO_SIMPLES>{CR_LN}                            {BEGIN 0;}
 <COMENTARIO_SIMPLES>.                                  ;
 
+
 "\""                                                   {BEGIN STRING;}
-<STRING>({STR})?"\\"[^ntfr]                            {printf("invalid escape sequence (%c%c)\n", yytext[yyleng-2],yytext[yyleng-1]); BEGIN STRING_AFTER_ERROR;}
-<STRING_AFTER_ERROR>"\\"[^ntfr]                        {printf("invalid escape sequence (%c%c)\n", yytext[yyleng-2],yytext[yyleng-1]);}
-<STRING_AFTER_ERROR>{CR_LN}                            {printf("unterminated string literal\n"); BEGIN 0;}
-<STRING_AFTER_ERROR>[^\"]                              ;
+
+<STRING>{STR}?"\""                                     {BEGIN 0; printf("STRLIT(\"%s)\n",yytext);}
+<STRING><<EOF>>                                        {BEGIN 0; printf("unterminated string literal\n");}
+<STRING>{STR}?{CR_LN}                                  {BEGIN 0; printf("unterminated string literal\n");}
+
+<STRING>([^\n\r\"]|\\.)*                               {BEGIN STRING_AFTER_ERROR; printf("invalid escape sequence (%c%c)\n", yytext[yyleng-2],yytext[yyleng-1]);}
+
+<STRING_AFTER_ERROR>([^\n\r\"]|\\.)*{CR_LN}            {BEGIN 0;printf("unterminated string literal\n");}
+<STRING_AFTER_ERROR>([^\n\r\"]|\\.)*                   {printf("invalid escape sequence (%c%c)\n", yytext[yyleng-2],yytext[yyleng-1]);}
 <STRING_AFTER_ERROR>\"                                 {BEGIN 0;}
-<STRING><<EOF>>                                        {printf("unterminated string literal\n"); BEGIN 0;}
-<STRING>{STR}{CR_LN}                                   {printf("unterminated string literal\n"); BEGIN 0;}
-<STRING>{STR}"\""                                      {printf("STRLIT(\"%s)\n",yytext);BEGIN 0;}
 
 
 {CLASS}                                                {printf("CLASS\n");}
 {COMMA}                                                {printf("COMMA\n");}
 {MINUS}                                                {printf("MINUS\n");}
-{LT}                                                   {printf("\n");}
+{LT}                                                   {printf("LT\n");}
 {LSQ}                                                  {printf("LSQ\n");}
 {LPAR}                                                 {printf("LPAR\n");}
 {LE}                                                   {printf("LE\n");}
@@ -134,25 +136,23 @@ ESPACO                                                 (\n|\t|\r|\f|" "|\r\n|\\n
 {PUBLIC}                                               {printf("PUBLIC\n");}
 {PARSEINT}                                             {printf("PARSEINT\n");}
 
-{RESERVED}                                             {printf("RESERVED\n");}
+{RESERVED}                                             {printf("RESERVED(%s)\n",yytext);}
 {ID}                                                   {printf("ID(%s)\n",yytext);}
 {INTLIT}                                               {printf("INTLIT(%s)\n",yytext);}
 {REALLIT}                                              {printf("REALLIT(%s)\n",yytext);}
-{ESPACO}                                               ;
 
-"\\"[^{ESPACO}]                                        {printf("invalid escape sequence (%c%c)\n", yytext[yyleng-2],yytext[yyleng-1]);}
+{SPACE}                                                ;
+{ESCAPE}                                               {printf("invalid escape sequence (%c%c)\n", yytext[yyleng-2],yytext[yyleng-1]);}
 .                                                      {printf("illegal character (%s)\n",yytext);}
 
 
 %%
 
-int main()
-{
-yylex();
-return 0;
+int main() {
+    yylex();
+    return 0;
 }
 
-int yywrap()
-{
-return 1;
+int yywrap() {
+    return 1;
 }
