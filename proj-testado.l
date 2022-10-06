@@ -58,7 +58,7 @@ SPACE                                                  (\n|\t|\r|\f|" "|\r\n|\\n
 ID                                                     ({LETRA}|"_"|"$")({LETRA}|"_"|"$"|{DIGIT})* 
 REALLIT                                                ({INTLIT}("."{INTLIT}?)?|"."{INTLIT})(("E"|"e")("+"|"-")?{INTLIT}+)*
 INTLIT                                                 ("0"|{DIGIT}+(("_")*{DIGIT}+)*)
-STR                                                    (\.|[^\r\n\"\\.]|\\n|\\t|\\\\|\\r|\\f)+
+STR                                                    (\.|\\\"|[^\r\n\"\\.]|\\n|\\t|\\\\|\\r|\\f)+
 CR_LN                                                  (\n|\r\n|\r)
 RESERVED                                               ("System"|"Integer"|"null"|"++"|"--"|"break")
 ESCAPE                                                 "\\"[^(n|t|f|r)]
