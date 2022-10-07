@@ -33,8 +33,8 @@ NOT                                                    "!"
 NE                                                     "!="
 MOD                                                    "%"
 XOR                                                    "ˆ"
-RSHIFT                                                 ">>"
-LSHIFT                                                 "<<"
+RSHIFT                                                 "»"
+LSHIFT                                                 "«"
 ARROW                                                  "->"
 BOOL                                                   boolean
 INT                                                    int
@@ -60,7 +60,7 @@ REALLIT                                                ({INTLIT}("."{INTLIT}?)?|
 INTLIT                                                 ("0"|{DIGIT}+(("_")*{DIGIT}+)*)
 STR                                                    (\.|\\\"|[^\r\n\"\\.]|\\n|\\t|\\\\|\\r|\\f)+
 CR_LN                                                  (\n|\r\n|\r)
-RESERVED                                               ("System"|"Integer"|"null"|"++"|"--"|"break")
+RESERVED                                               (private|goto|do|synchronized|package|default|assert|switch|continue|abstract|System|Integer|null|"++"|"--"|break|byte|case|catch|char|const|enum|extends|final|finally|float|for|implements|import|instanceof|interface|long|native|new|protected|short|strictfp|super|this|throw|throws|transient|try|volatile)
 ESCAPE                                                 "\\"[^(n|t|f|r)]
 
 %X COMENTARIO COMENTARIO_SIMPLES STRING STRING_AFTER_ERROR
@@ -85,10 +85,10 @@ ESCAPE                                                 "\\"[^(n|t|f|r)]
 <STRING><<EOF>>                                        {BEGIN 0; printf("unterminated string literal\n");}
 <STRING>{STR}?{CR_LN}                                  {BEGIN 0; printf("unterminated string literal\n");}
 
-<STRING>([^\n\r\"\\\\]|\\.)*                           {BEGIN STRING_AFTER_ERROR; printf("invalid escape sequence (%c%c)\n", yytext[yyleng-2],yytext[yyleng-1]);}
+<STRING>{STR}?([^\n\r\"]|\\.)                          {BEGIN STRING_AFTER_ERROR; printf("invalid escape sequence (%c%c)\n", yytext[yyleng-2],yytext[yyleng-1]);}
 
-<STRING_AFTER_ERROR>([^\n\r\"]|\\.)*{CR_LN}            {BEGIN 0;printf("unterminated string literal\n");}
-<STRING_AFTER_ERROR>([^\n\r\"]|\\.)*                   {printf("invalid escape sequence (%c%c)\n", yytext[yyleng-2],yytext[yyleng-1]);}
+<STRING_AFTER_ERROR>{STR}?([^\n\r\"]|\\.)*{CR_LN}      {BEGIN 0;printf("unterminated string literal\n");}
+<STRING_AFTER_ERROR>{STR}?([^\n\r\"]|\\.)              {printf("invalid escape sequence (%c%c)\n", yytext[yyleng-2],yytext[yyleng-1]);}
 <STRING_AFTER_ERROR>\"                                 {BEGIN 0;}
 
 
