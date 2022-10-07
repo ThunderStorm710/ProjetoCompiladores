@@ -85,7 +85,7 @@ ESCAPE                                                 "\\"[^(n|t|f|r)]
 <STRING><<EOF>>                                        {BEGIN 0; printf("unterminated string literal\n");}
 <STRING>{STR}?{CR_LN}                                  {BEGIN 0; printf("unterminated string literal\n");}
 
-<STRING>([^\n\r\"]|\\.)*                               {BEGIN STRING_AFTER_ERROR; printf("invalid escape sequence (%c%c)\n", yytext[yyleng-2],yytext[yyleng-1]);}
+<STRING>([^\n\r\"\\\\]|\\.)*                           {BEGIN STRING_AFTER_ERROR; printf("invalid escape sequence (%c%c)\n", yytext[yyleng-2],yytext[yyleng-1]);}
 
 <STRING_AFTER_ERROR>([^\n\r\"]|\\.)*{CR_LN}            {BEGIN 0;printf("unterminated string literal\n");}
 <STRING_AFTER_ERROR>([^\n\r\"]|\\.)*                   {printf("invalid escape sequence (%c%c)\n", yytext[yyleng-2],yytext[yyleng-1]);}
