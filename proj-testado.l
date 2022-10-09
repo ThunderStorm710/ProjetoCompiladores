@@ -3,6 +3,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#define false 0
+#define true 1
+int getPrint=false;
+int getPrintEronly=false;
+int numLinha=1;
+int numColuna=0;
 %}
 
 /************************************************TOKEN SIMPLES**********************************************************************/
@@ -62,95 +68,110 @@ STR                                                    (\.|\\\"|[^\r\n\"\\.]|\\n
 CR_LN                                                  (\n|\r\n|\r)
 RESERVED                                               (private|goto|do|synchronized|package|default|assert|switch|continue|abstract|System|Integer|null|"++"|"--"|break|byte|case|catch|char|const|enum|extends|final|finally|float|for|implements|import|instanceof|interface|long|native|new|protected|short|strictfp|super|this|throw|throws|transient|try|volatile)
 SLASH                                                  \\{CR_LN}
-ESCAPE                                                 (\\[^(n|t|f|r)])
+ESCAPE                                                 (\\([({LETRA}|{DIGIT})^(n|t|f|r)])?)
 
 %X COMENTARIO COMENTARIO_SIMPLES STRING STRING_AFTER_ERROR
 
 /****************************************************** REGRAS *********************************************************************/
 
 %%
-"/*"                                                   {BEGIN COMENTARIO;}
-<COMENTARIO>{CR_LN}                                    ;
-<COMENTARIO>.                                          ;
-<COMENTARIO><<EOF>>                                    {BEGIN 0;printf("unterminated comment\n");}
+"/*"                                                   {BEGIN COMENTARIO;numColuna+=yyleng;}
+<COMENTARIO>{CR_LN}                                    {numColuna=0;numLinha++;}
+<COMENTARIO>.                                          {numColuna+=yyleng;}
+<COMENTARIO><<EOF>>                                    {BEGIN 0;if(getPrint || getPrintEronly)printf("Line %d, col %d: unterminated comment\n", numLinha, numColuna);numColuna=0;numLinha++;}
 <COMENTARIO>"*/"                                       {BEGIN 0;}
 
-"//"                                                   {BEGIN COMENTARIO_SIMPLES;}
-<COMENTARIO_SIMPLES>{CR_LN}                            {BEGIN 0;}
-<COMENTARIO_SIMPLES>.                                  ;
+"//"                                                   {BEGIN COMENTARIO_SIMPLES;numColuna+=yyleng;}
+<COMENTARIO_SIMPLES>{CR_LN}                            {BEGIN 0;numColuna=0;numLinha++;}
+<COMENTARIO_SIMPLES>.                                  {numColuna+=yyleng;};
 
 
-"\""                                                   {BEGIN STRING;}
+"\""                                                   {BEGIN STRING;numColuna+=yyleng;}
 
-<STRING>{STR}?"\""                                     {BEGIN 0; printf("STRLIT(\"%s)\n",yytext);}
-<STRING><<EOF>>                                        {BEGIN 0; printf("unterminated string literal\n");}
-<STRING>{STR}?{CR_LN}                                  {BEGIN 0; printf("unterminated string literal\n");}
+<STRING>{STR}?"\""                                     {BEGIN 0; if(getPrint)printf("STRLIT(\"%s)\n",yytext);numColuna+=yyleng;}
+<STRING><<EOF>>                                        {BEGIN 0; if(getPrint || getPrintEronly)printf("Line %d, col %d: unterminated string literal\n", numLinha, numColuna);}
+<STRING>{STR}?{CR_LN}                                  {BEGIN 0; if(getPrint || getPrintEronly)printf("Line %d, col %d: unterminated string literal\n", numLinha, numColuna);numColuna=0;numLinha++;}
 
-<STRING>{STR}?([^\n\r\"]|\\.)                          {BEGIN STRING_AFTER_ERROR; printf("invalid escape sequence (%c%c)\n", yytext[yyleng-2],yytext[yyleng-1]);}
+<STRING>{STR}?([^\n\r\"]|\\.)                          {BEGIN STRING_AFTER_ERROR; if(getPrint || getPrintEronly)printf("Line <%d>, col <%d>: invalid escape sequence (%c%c)\n", numLinha, numColuna, yytext[yyleng-2],yytext[yyleng-1]);}
 
-<STRING_AFTER_ERROR>{STR}?([^\n\r\"]|\\.)*{CR_LN}      {BEGIN 0;printf("unterminated string literal\n");}
-<STRING_AFTER_ERROR>{STR}?([^\n\r\"]|\\.)              {printf("invalid escape sequence (%c%c)\n", yytext[yyleng-2],yytext[yyleng-1]);}
-<STRING_AFTER_ERROR>{STR}?\"                           {BEGIN 0;}
+<STRING_AFTER_ERROR>{STR}?{CR_LN}                      {BEGIN 0;if(getPrint || getPrintEronly)printf("Line <%d>, col <%d>: unterminated string literal\n", numLinha, numColuna);numColuna=0;numLinha++;}
+<STRING_AFTER_ERROR>{STR}?([^\n\r\"]|\\.)              {if(getPrint || getPrintEronly)printf("Line <%d>, col <%d>: invalid escape sequence (%c%c)\n", numLinha, numColuna, yytext[yyleng-2],yytext[yyleng-1]);}
+<STRING_AFTER_ERROR>{STR}?\"                           {BEGIN 0;numColuna+=yyleng;}
 
 
-{CLASS}                                                {printf("CLASS\n");}
-{COMMA}                                                {printf("COMMA\n");}
-{MINUS}                                                {printf("MINUS\n");}
-{LT}                                                   {printf("LT\n");}
-{LSQ}                                                  {printf("LSQ\n");}
-{LPAR}                                                 {printf("LPAR\n");}
-{LE}                                                   {printf("LE\n");}
-{LBRACE}                                               {printf("LBRACE\n");}
-{GT}                                                   {printf("GT\n");}
-{GE}                                                   {printf("GE");}
-{DIV}                                                  {printf("DIV\n");}
-{STAR}                                                 {printf("STAR\n");}
-{EQ}                                                   {printf("EQ\n");}
-{ASSIGN}                                               {printf("ASSIGN\n");}
-{AND}                                                  {printf("AND\n");}
-{SEMICOLON}                                            {printf("SEMICOLON\n");}
-{RSQ}                                                  {printf("RSQ\n");}
-{RPAR}                                                 {printf("RPAR\n");}
-{RBRACE}                                               {printf("RBRACE\n");}
-{PLUS}                                                 {printf("PLUS\n");}
-{OR}                                                   {printf("OR\n");}
-{NOT}                                                  {printf("NOT\n");}
-{NE}                                                   {printf("NE\n");}
-{MOD}                                                  {printf("MOD\n");}
-{XOR}                                                  {printf("XOR\n");}
-{RSHIFT}                                               {printf("RSHIFT\n");}
-{LSHIFT}                                               {printf("LSHIFT\n");}
-{ARROW}                                                {printf("ARROW\n");}
-{BOOL}                                                 {printf("BOOL\n");}
-{INT}                                                  {printf("INT\n");}
-{IF}                                                   {printf("IF\n");}
-{ELSE}                                                 {printf("ELSE\n");}
-{DOUBLE}                                               {printf("DOUBLE\n");}
-{DOTLENGTH}                                            {printf("DOTLENGTH\n");}
-{PRINT}                                                {printf("PRINT\n");}
-{BOOLLIT}                                              {printf("BOOLLIT\n");}
-{WHILE}                                                {printf("WHILE\n");}
-{VOID}                                                 {printf("VOID\n");}
-{STRING}                                               {printf("STRING\n");}
-{STATIC}                                               {printf("STATIC\n");}
-{RETURN}                                               {printf("RETURN\n");}
-{PUBLIC}                                               {printf("PUBLIC\n");}
-{PARSEINT}                                             {printf("PARSEINT\n");}
+{CLASS}                                                {if(getPrint)printf("CLASS\n");numColuna+=yyleng;}
+{COMMA}                                                {if(getPrint)printf("COMMA\n");numColuna+=yyleng;}
+{MINUS}                                                {if(getPrint)printf("MINUS\n");numColuna+=yyleng;}
+{LT}                                                   {if(getPrint)printf("LT\n");numColuna+=yyleng;}
+{LSQ}                                                  {if(getPrint)printf("LSQ\n");numColuna+=yyleng;}
+{LPAR}                                                 {if(getPrint)printf("LPAR\n");numColuna+=yyleng;}
+{LE}                                                   {if(getPrint)printf("LE\n");numColuna+=yyleng;}
+{LBRACE}                                               {if(getPrint)printf("LBRACE\n");numColuna+=yyleng;}
+{GT}                                                   {if(getPrint)printf("GT\n");numColuna+=yyleng;}
+{GE}                                                   {if(getPrint)printf("GE");numColuna+=yyleng;}
+{DIV}                                                  {if(getPrint)printf("DIV\n");numColuna+=yyleng;}
+{STAR}                                                 {if(getPrint)printf("STAR\n");numColuna+=yyleng;}
+{EQ}                                                   {if(getPrint)printf("EQ\n");numColuna+=yyleng;}
+{ASSIGN}                                               {if(getPrint)printf("ASSIGN\n");numColuna+=yyleng;}
+{AND}                                                  {if(getPrint)printf("AND\n");numColuna+=yyleng;}
+{SEMICOLON}                                            {if(getPrint)printf("SEMICOLON\n");numColuna+=yyleng;}
+{RSQ}                                                  {if(getPrint)printf("RSQ\n");numColuna+=yyleng;}
+{RPAR}                                                 {if(getPrint)printf("RPAR\n");numColuna+=yyleng;}
+{RBRACE}                                               {if(getPrint)printf("RBRACE\n");numColuna+=yyleng;}
+{PLUS}                                                 {if(getPrint)printf("PLUS\n");numColuna+=yyleng;}
+{OR}                                                   {if(getPrint)printf("OR\n");numColuna+=yyleng;}
+{NOT}                                                  {if(getPrint)printf("NOT\n");numColuna+=yyleng;}
+{NE}                                                   {if(getPrint)printf("NE\n");numColuna+=yyleng;}
+{MOD}                                                  {if(getPrint)printf("MOD\n");numColuna+=yyleng;}
+{XOR}                                                  {if(getPrint)printf("XOR\n");numColuna+=yyleng;}
+{RSHIFT}                                               {if(getPrint)printf("RSHIFT\n");numColuna+=yyleng;}
+{LSHIFT}                                               {if(getPrint)printf("LSHIFT\n");numColuna+=yyleng;}
+{ARROW}                                                {if(getPrint)printf("ARROW\n");numColuna+=yyleng;}
+{BOOL}                                                 {if(getPrint)printf("BOOL\n");numColuna+=yyleng;}
+{INT}                                                  {if(getPrint)printf("INT\n");numColuna+=yyleng;}
+{IF}                                                   {if(getPrint)printf("IF\n");numColuna+=yyleng;}
+{ELSE}                                                 {if(getPrint)printf("ELSE\n");numColuna+=yyleng;}
+{DOUBLE}                                               {if(getPrint)printf("DOUBLE\n");numColuna+=yyleng;}
+{DOTLENGTH}                                            {if(getPrint)printf("DOTLENGTH\n");numColuna+=yyleng;}
+{PRINT}                                                {if(getPrint)printf("PRINT\n");numColuna+=yyleng;}
+{BOOLLIT}                                              {if(getPrint)printf("BOOLLIT\n");numColuna+=yyleng;}
+{WHILE}                                                {if(getPrint)printf("WHILE\n");numColuna+=yyleng;}
+{VOID}                                                 {if(getPrint)printf("VOID\n");numColuna+=yyleng;}
+{STRING}                                               {if(getPrint)printf("STRING\n");numColuna+=yyleng;}
+{STATIC}                                               {if(getPrint)printf("STATIC\n");numColuna+=yyleng;}
+{RETURN}                                               {if(getPrint)printf("RETURN\n");numColuna+=yyleng;}
+{PUBLIC}                                               {if(getPrint)printf("PUBLIC\n");numColuna+=yyleng;}
+{PARSEINT}                                             {if(getPrint)printf("PARSEINT\n");numColuna+=yyleng;}
 
-{RESERVED}                                             {printf("RESERVED(%s)\n",yytext);}
-{ID}                                                   {printf("ID(%s)\n",yytext);}
-{INTLIT}                                               {printf("INTLIT(%s)\n",yytext);}
-{REALLIT}                                              {printf("REALLIT(%s)\n",yytext);}
+{RESERVED}                                             {if(getPrint)printf("RESERVED(%s)\n",yytext);numColuna+=yyleng;}
+{ID}                                                   {if(getPrint)printf("ID(%s)\n",yytext);numColuna+=yyleng;}
+{INTLIT}                                               {if(getPrint)printf("INTLIT(%s)\n",yytext);numColuna+=yyleng;}
+{REALLIT}                                              {if(getPrint)printf("REALLIT(%s)\n",yytext);numColuna+=yyleng;}
 
-{SPACE}                                                ;
-{SLASH}                                                {printf("SLASH -invalid escape sequence(%c)\n",yytext[yyleng - 2]);}
-{ESCAPE}                                               {printf("ESCAPE - invalid escape sequence (%s)\n", yytext);}
-.                                                      {printf("illegal character (%s)\n",yytext);}
+
+{CR_LN}                                                {numColuna=0;numLinha++;}; 
+{SPACE}                                                {numColuna+=yyleng;}
+{SLASH}                                                {printf("SLASH - invalid escape sequence(%s)\n",yytext);}
+{ESCAPE}                                               {if(getPrint || getPrintEronly)printf("ESCAPE Line <%d>, col <%d>: invalid escape sequence (%c%c)\n", numLinha, numColuna, yytext[yyleng-2],yytext[yyleng-1]);numColuna+=yyleng;}
+.                                                      {if(getPrint || getPrintEronly)printf("Line <%d>, col <%d>: illegal character (%s)\n", numLinha, numColuna, yytext);numColuna+=yyleng;}
 
 
 %%
 
-int main() {
+int main(int argc,char* argv[]){
+    if (argc == 2){
+        if (strcmp(argv[1], "-l") == 0){
+            getPrint=true;
+        }else if(strcmp(argv[1], "-e1") == 0){
+            getPrint=false;
+            getPrintEronly=true;
+        }
+    }
+    if (argc == 1){
+        isPrinted=true;
+    } else {
+        printf("./jucompiler -l / -e1\n");
+    }
     yylex();
     return 0;
 }
