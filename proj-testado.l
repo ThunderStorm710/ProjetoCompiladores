@@ -32,7 +32,7 @@ OR                                                     "||"
 NOT                                                    "!"
 NE                                                     "!="
 MOD                                                    "%"
-XOR                                                    "ˆ"
+XOR                                                    "^"
 RSHIFT                                                 "»"
 LSHIFT                                                 "«"
 ARROW                                                  "->"
@@ -61,7 +61,8 @@ INTLIT                                                 ("0"|{DIGIT}+(("_")*{DIGI
 STR                                                    (\.|\\\"|[^\r\n\"\\.]|\\n|\\t|\\\\|\\r|\\f)+
 CR_LN                                                  (\n|\r\n|\r)
 RESERVED                                               (private|goto|do|synchronized|package|default|assert|switch|continue|abstract|System|Integer|null|"++"|"--"|break|byte|case|catch|char|const|enum|extends|final|finally|float|for|implements|import|instanceof|interface|long|native|new|protected|short|strictfp|super|this|throw|throws|transient|try|volatile)
-ESCAPE                                                 "\\"[^(n|t|f|r)]
+SLASH                                                  \\{CR_LN}
+ESCAPE                                                 (\\[^(n|t|f|r)])
 
 %X COMENTARIO COMENTARIO_SIMPLES STRING STRING_AFTER_ERROR
 
@@ -89,7 +90,7 @@ ESCAPE                                                 "\\"[^(n|t|f|r)]
 
 <STRING_AFTER_ERROR>{STR}?([^\n\r\"]|\\.)*{CR_LN}      {BEGIN 0;printf("unterminated string literal\n");}
 <STRING_AFTER_ERROR>{STR}?([^\n\r\"]|\\.)              {printf("invalid escape sequence (%c%c)\n", yytext[yyleng-2],yytext[yyleng-1]);}
-<STRING_AFTER_ERROR>\"                                 {BEGIN 0;}
+<STRING_AFTER_ERROR>{STR}?\"                           {BEGIN 0;}
 
 
 {CLASS}                                                {printf("CLASS\n");}
@@ -142,7 +143,8 @@ ESCAPE                                                 "\\"[^(n|t|f|r)]
 {REALLIT}                                              {printf("REALLIT(%s)\n",yytext);}
 
 {SPACE}                                                ;
-{ESCAPE}                                               {printf("invalid escape sequence (%c%c)\n", yytext[yyleng-2],yytext[yyleng-1]);}
+{SLASH}                                                {printf("SLASH -invalid escape sequence(%c)\n",yytext[yyleng - 2]);}
+{ESCAPE}                                               {printf("ESCAPE - invalid escape sequence (%s)\n", yytext);}
 .                                                      {printf("illegal character (%s)\n",yytext);}
 
 
