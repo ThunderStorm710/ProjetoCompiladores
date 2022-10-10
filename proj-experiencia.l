@@ -8,13 +8,14 @@
 int getPrint=false;
 int getPrintEronly=false;
 int numLinha=1;
-int numColuna=0;
+int numColuna=1;
 %}
 
 /************************************************TOKEN SIMPLES**********************************************************************/
 
 LETRA                                                  [A-Za-z]        
-DIGIT                                                  [0-9]   
+DIGIT                                                  [0-9]
+DIGITW0                                                [1-9]
 COMMA                                                  ","
 MINUS                                                  "-"
 LT                                                     "<"
@@ -60,18 +61,16 @@ PARSEINT                                               Integer.parseInt
 CLASS                                                  class 
 
 /***********************************************TOKEN COMPOSTOS*********************************************************************/
+STR                                                    (\.|\\\"|[^\r\n\"\\.]|\\n|\\t|\\\\|\\r|\\f)+
 SPACE                                                  (\t|\f|" ")+
 ID                                                     ({LETRA}|"_"|"$")({LETRA}|"_"|"$"|{DIGIT})* 
-REALLIT                                                ({INTLIT}("."{INTLIT}?)?|"."{INTLIT})(("E"|"e")("+"|"-")?{INTLIT}+)*
-INTLIT                                                 ("0"|{DIGIT}+(("_")*{DIGIT}+)*)
-STR                                                    (\.|\\\"|[^\r\n\"\\.]|\\n|\\t|\\\\|\\r|\\f)+
+REALLIT                                                ({INTLLIT}("."{INTLLIT}?)?|"."{INTLLIT})(("E"|"e")("+"|"-")?{INTLLIT}+)*
+INTLLIT                                                ("0"|{DIGITW0}+(("_")*{DIGIT}+)*)
 CR_LN                                                  (\n|\r\n|\r)
 RESERVED                                               (private|goto|do|synchronized|package|default|assert|switch|continue|abstract|System|Integer|null|"++"|"--"|break|byte|case|catch|char|const|enum|extends|final|finally|float|for|implements|import|instanceof|interface|long|native|new|protected|short|strictfp|super|this|throw|throws|transient|try|volatile)
-SLASH                                                  \\{CR_LN}
-ESCAPE                                                 (\\[({LETRA}|{DIGIT})^(n|t|f|r)])
-                                                     
 
-%X COMENTARIO COMENTARIO_SIMPLES STRING STRING_AFTER_ERROR
+
+%X COMENTARIO COMENTARIO_SIMPLES STRING STRING_AFTER_ERROR ESCAPE_ERROR
 
 /****************************************************** REGRAS *********************************************************************/
 
@@ -87,17 +86,32 @@ ESCAPE                                                 (\\[({LETRA}|{DIGIT})^(n|
 <COMENTARIO_SIMPLES>.                                  {numColuna+=yyleng;}
 
 
-"\""                                                   {BEGIN STRING;numColuna+=yyleng;}
 
-<STRING>{STR}?"\""                                     {BEGIN 0; if(getPrint) printf("STRLIT(\"%s)\n",yytext);numColuna+=yyleng;}
+
+
+"\""                                                   {BEGIN STRING; numColuna+=yyleng;} 
 <STRING><<EOF>>                                        {BEGIN 0; if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, numColuna);}
+<STRING>{STR}?\"                                       {BEGIN 0; if(getPrint) printf("STRLIT(\"%s)\n",yytext);numColuna+=yyleng;}
 <STRING>{STR}?{CR_LN}                                  {BEGIN 0; if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, numColuna);numColuna=0;numLinha++;}
 
-<STRING>{STR}?([^\n\r\"]|\\.)                          {BEGIN STRING_AFTER_ERROR; if(getPrint || getPrintEronly) printf("Line %d, col %d: invalid escape sequence (%c%c)\n", numLinha, numColuna, yytext[yyleng-2],yytext[yyleng-1]);}
 
-<STRING_AFTER_ERROR>{STR}?{CR_LN}                      {BEGIN 0;if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, numColuna);numColuna=0;numLinha++;}
-<STRING_AFTER_ERROR>{STR}?([^\n\r\"]|\\.)              {if(getPrint || getPrintEronly) printf("Line %d, col %d: invalid escape sequence (%c%c)\n", numLinha, numColuna, yytext[yyleng-2],yytext[yyleng-1]);}
+<STRING>{STR}?\\                                       {BEGIN ESCAPE_ERROR;}
+
+
+<ESCAPE_ERROR>{CR_LN}                                  {BEGIN 0; if(getPrint || getPrintEronly) {
+                                                                    printf("Line %d, col %d: invalid escape sequence (\\)\n" , numLinha, numColuna+yyleng); 
+                                                                    printf("Line %d, col %d: unterminated string literal\n", numLinha, numColuna); 
+                                                                    numColuna=0;numLinha++;}}
+
+<ESCAPE_ERROR>[^(n|t|f|r|\"|\\)]                                {BEGIN STRING_AFTER_ERROR; if(getPrint || getPrintEronly) printf("Line %d, col %d: invalid escape sequence (\\%s)\n", numLinha, numColuna,yytext); numColuna+=yyleng;}
+
+
 <STRING_AFTER_ERROR>{STR}?\"                           {BEGIN 0;numColuna+=yyleng;}
+<STRING_AFTER_ERROR><<EOF>>                            {BEGIN 0; if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, numColuna);}
+<STRING_AFTER_ERROR>{STR}?{CR_LN}                      {BEGIN 0;if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, numColuna);numColuna=0;numLinha++;}
+<STRING_AFTER_ERROR>{STR}?\\                           {BEGIN ESCAPE_ERROR;}
+
+
 
 
 {CLASS}                                                {if(getPrint)printf("CLASS\n");numColuna+=yyleng;}
@@ -146,7 +160,7 @@ ESCAPE                                                 (\\[({LETRA}|{DIGIT})^(n|
 
 {RESERVED}                                             {if(getPrint)printf("RESERVED(%s)\n",yytext);numColuna+=yyleng;}
 {ID}                                                   {if(getPrint)printf("ID(%s)\n",yytext);numColuna+=yyleng;}
-{INTLIT}                                               {if(getPrint)printf("INTLIT(%s)\n",yytext);numColuna+=yyleng;}
+{INTLLIT}                                               {if(getPrint)printf("INTLlIT(%s)\n",yytext);numColuna+=yyleng;}
 {REALLIT}                                              {if(getPrint)printf("REALLIT(%s)\n",yytext);numColuna+=yyleng;}
 
 {CR_LN}                                                {numColuna=0;numLinha++;}; 
