@@ -135,6 +135,7 @@ int main(int argc,char* argv[]){
             isPrinted=false;
         }
     }
+
     yylex();
     return 0;
 }

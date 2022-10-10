@@ -68,7 +68,8 @@ STR                                                    (\.|\\\"|[^\r\n\"\\.]|\\n
 CR_LN                                                  (\n|\r\n|\r)
 RESERVED                                               (private|goto|do|synchronized|package|default|assert|switch|continue|abstract|System|Integer|null|"++"|"--"|break|byte|case|catch|char|const|enum|extends|final|finally|float|for|implements|import|instanceof|interface|long|native|new|protected|short|strictfp|super|this|throw|throws|transient|try|volatile)
 SLASH                                                  \\{CR_LN}
-ESCAPE                                                 (\\([({LETRA}|{DIGIT})^(n|t|f|r)])?)
+ESCAPE                                                 (\\[({LETRA}|{DIGIT})^(n|t|f|r)])
+                                                     
 
 %X COMENTARIO COMENTARIO_SIMPLES STRING STRING_AFTER_ERROR
 
@@ -83,19 +84,19 @@ ESCAPE                                                 (\\([({LETRA}|{DIGIT})^(n
 
 "//"                                                   {BEGIN COMENTARIO_SIMPLES;numColuna+=yyleng;}
 <COMENTARIO_SIMPLES>{CR_LN}                            {BEGIN 0;numColuna=0;numLinha++;}
-<COMENTARIO_SIMPLES>.                                  {numColuna+=yyleng;};
+<COMENTARIO_SIMPLES>.                                  {numColuna+=yyleng;}
 
 
 "\""                                                   {BEGIN STRING;numColuna+=yyleng;}
 
-<STRING>{STR}?"\""                                     {BEGIN 0; if(getPrint)printf("STRLIT(\"%s)\n",yytext);numColuna+=yyleng;}
-<STRING><<EOF>>                                        {BEGIN 0; if(getPrint || getPrintEronly)printf("Line %d, col %d: unterminated string literal\n", numLinha, numColuna);}
-<STRING>{STR}?{CR_LN}                                  {BEGIN 0; if(getPrint || getPrintEronly)printf("Line %d, col %d: unterminated string literal\n", numLinha, numColuna);numColuna=0;numLinha++;}
+<STRING>{STR}?"\""                                     {BEGIN 0; if(getPrint) printf("STRLIT(\"%s)\n",yytext);numColuna+=yyleng;}
+<STRING><<EOF>>                                        {BEGIN 0; if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, numColuna);}
+<STRING>{STR}?{CR_LN}                                  {BEGIN 0; if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, numColuna);numColuna=0;numLinha++;}
 
-<STRING>{STR}?([^\n\r\"]|\\.)                          {BEGIN STRING_AFTER_ERROR; if(getPrint || getPrintEronly)printf("Line <%d>, col <%d>: invalid escape sequence (%c%c)\n", numLinha, numColuna, yytext[yyleng-2],yytext[yyleng-1]);}
+<STRING>{STR}?([^\n\r\"]|\\.)                          {BEGIN STRING_AFTER_ERROR; if(getPrint || getPrintEronly) printf("Line %d, col %d: invalid escape sequence (%c%c)\n", numLinha, numColuna, yytext[yyleng-2],yytext[yyleng-1]);}
 
-<STRING_AFTER_ERROR>{STR}?{CR_LN}                      {BEGIN 0;if(getPrint || getPrintEronly)printf("Line <%d>, col <%d>: unterminated string literal\n", numLinha, numColuna);numColuna=0;numLinha++;}
-<STRING_AFTER_ERROR>{STR}?([^\n\r\"]|\\.)              {if(getPrint || getPrintEronly)printf("Line <%d>, col <%d>: invalid escape sequence (%c%c)\n", numLinha, numColuna, yytext[yyleng-2],yytext[yyleng-1]);}
+<STRING_AFTER_ERROR>{STR}?{CR_LN}                      {BEGIN 0;if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, numColuna);numColuna=0;numLinha++;}
+<STRING_AFTER_ERROR>{STR}?([^\n\r\"]|\\.)              {if(getPrint || getPrintEronly) printf("Line %d, col %d: invalid escape sequence (%c%c)\n", numLinha, numColuna, yytext[yyleng-2],yytext[yyleng-1]);}
 <STRING_AFTER_ERROR>{STR}?\"                           {BEGIN 0;numColuna+=yyleng;}
 
 
@@ -150,10 +151,8 @@ ESCAPE                                                 (\\([({LETRA}|{DIGIT})^(n
 
 
 {CR_LN}                                                {numColuna=0;numLinha++;}; 
-{SPACE}                                                {numColuna+=yyleng;}
-{SLASH}                                                {printf("SLASH - invalid escape sequence(%s)\n",yytext);}
-{ESCAPE}                                               {if(getPrint || getPrintEronly)printf("ESCAPE Line <%d>, col <%d>: invalid escape sequence (%c%c)\n", numLinha, numColuna, yytext[yyleng-2],yytext[yyleng-1]);numColuna+=yyleng;}
-.                                                      {if(getPrint || getPrintEronly)printf("Line <%d>, col <%d>: illegal character (%s)\n", numLinha, numColuna, yytext);numColuna+=yyleng;}
+\\                                                     {if(getPrint || getPrintEronly)printf("ESCAPE Line %d, col %d invalid escape sequence (%s)\n", numLinha, numColuna, yytext);numColuna+=yyleng;}
+.                                                      {if(getPrint || getPrintEronly)printf("Line %d, col %d: illegal character (%s)\n", numLinha, numColuna, yytext);numColuna+=yyleng;}
 
 
 %%
@@ -168,7 +167,7 @@ int main(int argc,char* argv[]){
         }
     }
     if (argc == 1){
-        isPrinted=true;
+        getPrint=true;
     } else {
         printf("./jucompiler -l / -e1\n");
     }
