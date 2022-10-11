@@ -75,7 +75,6 @@ RESERVED                                               (private|goto|do|synchron
 %X COMENTARIO COMENTARIO_SIMPLES STRING STRING_AFTER_ERROR ESCAPE_ERROR
 
 /****************************************************** REGRAS *********************************************************************/
-
 %%
 "/*"                                                   {BEGIN COMENTARIO; commentColuna = numColuna; commentLinha = numLinha; numColuna+=yyleng;}
 <COMENTARIO>{CR_LN}                                    {numColuna=1;numLinha++;}
