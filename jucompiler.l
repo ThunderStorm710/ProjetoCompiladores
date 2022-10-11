@@ -81,11 +81,11 @@ RESERVED                                               (private|goto|do|synchron
 <COMENTARIO>{CR_LN}                                    {numColuna=1;numLinha++;}
 <COMENTARIO>.                                          {numColuna+=yyleng;}
 <COMENTARIO><<EOF>>                                    {BEGIN 0;if(getPrint || getPrintEronly)printf("Line %d, col %d: unterminated comment\n", commentLinha, commentColuna);numColuna=1;numLinha++;}
-<COMENTARIO>"*/"                                       {BEGIN 0;}
+<COMENTARIO>"*/"                                       {BEGIN 0; numColuna+=yyleng;}
 
 "//"                                                   {BEGIN COMENTARIO_SIMPLES;numColuna+=yyleng;}
 <COMENTARIO_SIMPLES>{CR_LN}                            {BEGIN 0;numColuna=1;numLinha++;}
-<COMENTARIO_SIMPLES>.                                  {numColuna+=yyleng;}
+<COMENTARIO_SIMPLES>.                                  ;
 
 
 "\""                                                   {BEGIN STRING; aspaPos = numColuna; numColuna+=yyleng;} 
