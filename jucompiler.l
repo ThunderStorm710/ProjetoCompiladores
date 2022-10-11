@@ -19,6 +19,8 @@ DIGIT                                                  [0-9]
 DIGITW0                                                [1-9]
 COMMA                                                  ","
 MINUS                                                  "-"
+RSHIFT                                                 ">>"
+LSHIFT                                                 "<<"
 LT                                                     "<"
 LSQ                                                    "["
 LPAR                                                   "("
@@ -41,8 +43,6 @@ NOT                                                    "!"
 NE                                                     "!="
 MOD                                                    "%"
 XOR                                                    "^"
-RSHIFT                                                 "»"
-LSHIFT                                                 "«"
 ARROW                                                  "->"
 BOOL                                                   boolean
 INT                                                    int
@@ -66,8 +66,8 @@ STR                                                    (\.|\\\"|[^\r\n\"\\.]|\\n
 SPACE                                                  (\t|\f|" ")+
 ID                                                     ({LETRA}|"_"|"$")({LETRA}|"_"|"$"|{DIGIT})* 
 INTLIT                                                 ("0"|{DIGITW0}+(("_")*{DIGIT}+)*)
-INTLIT2                                                ("0"|{DIGIT}+(("_")*{DIGIT}+)*)
-REALLIT                                                ({INTLIT}("."{INTLIT}?)?|"."{INTLIT})(("E"|"e")("+"|"-")?{INTLIT}+)*
+INTLIT2                                                ({DIGIT}+(("_")*{DIGIT}+)*)
+REALLIT                                                {INTLIT2}"."({INTLIT2}|(("E"|"e")("+"|"-")?{INTLIT2}))?|"."{INTLIT2}((("E"|"e")("+"|"-")?{INTLIT2}))?|{INTLIT2}"."{INTLIT2}(("E"|"e")("+"|"-")?{INTLIT2})|{INTLIT2}(("E"|"e")("+"|"-")?{INTLIT2})
 CR_LN                                                  (\n|\r\n|\r)
 RESERVED                                               (private|goto|do|synchronized|package|default|assert|switch|continue|abstract|System|Integer|null|"++"|"--"|break|byte|case|catch|char|const|enum|extends|final|finally|float|for|implements|import|instanceof|interface|long|native|new|protected|short|strictfp|super|this|throw|throws|transient|try|volatile)
 
@@ -88,14 +88,10 @@ RESERVED                                               (private|goto|do|synchron
 <COMENTARIO_SIMPLES>.                                  {numColuna+=yyleng;}
 
 
-
-
 "\""                                                   {BEGIN STRING; aspaPos = numColuna; numColuna+=yyleng;} 
 <STRING><<EOF>>                                        {BEGIN 0; if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, aspaPos);}
 <STRING>{STR}?\"                                       {BEGIN 0; if(getPrint) printf("STRLIT(\"%s)\n",yytext);numColuna+=yyleng;}
 <STRING>{STR}?{CR_LN}                                  {BEGIN 0; if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, aspaPos);numColuna=1;numLinha++;}
-
-
 <STRING>{STR}?\\                                       {BEGIN ESCAPE_ERROR;  numColuna+=yyleng; barraPos = numColuna - 1;}
 
 
@@ -103,7 +99,6 @@ RESERVED                                               (private|goto|do|synchron
                                                                     printf("Line %d, col %d: invalid escape sequence (\\)\n" , numLinha, barraPos); 
                                                                     printf("Line %d, col %d: unterminated string literal\n", numLinha, aspaPos); 
                                                                     numColuna=1;numLinha++;}}
-
 <ESCAPE_ERROR>[^ntfr\"\\]                              {BEGIN STRING_AFTER_ERROR; if(getPrint || getPrintEronly) printf("Line %d, col %d: invalid escape sequence (\\%s)\n", numLinha, barraPos, yytext); numColuna+=yyleng;}
 
 
@@ -111,8 +106,6 @@ RESERVED                                               (private|goto|do|synchron
 <STRING_AFTER_ERROR><<EOF>>                            {BEGIN 0; if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, aspaPos);}
 <STRING_AFTER_ERROR>{STR}?{CR_LN}                      {BEGIN 0;if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, aspaPos);numColuna=1;numLinha++;}
 <STRING_AFTER_ERROR>{STR}?\\                           {BEGIN ESCAPE_ERROR; numColuna+=yyleng; barraPos = numColuna - 1;}
-
-
 
 
 {CLASS}                                                {if(getPrint)printf("CLASS\n");numColuna+=yyleng;}
@@ -158,13 +151,12 @@ RESERVED                                               (private|goto|do|synchron
 {RETURN}                                               {if(getPrint)printf("RETURN\n");numColuna+=yyleng;}
 {PUBLIC}                                               {if(getPrint)printf("PUBLIC\n");numColuna+=yyleng;}
 {PARSEINT}                                             {if(getPrint)printf("PARSEINT\n");numColuna+=yyleng;}
-
 {RESERVED}                                             {if(getPrint)printf("RESERVED(%s)\n",yytext);numColuna+=yyleng;}
 {ID}                                                   {if(getPrint)printf("ID(%s)\n",yytext); numColuna+=yyleng;}
 {INTLIT}                                               {if(getPrint)printf("INTLIT(%s)\n",yytext);numColuna+=yyleng;}
 {REALLIT}                                              {if(getPrint)printf("REALLIT(%s)\n",yytext);numColuna+=yyleng;}
 
-{CR_LN}                                                {numColuna=1;numLinha++;}; 
+{CR_LN}                                                {numColuna=1; numLinha++;}; 
 {SPACE}                                                {numColuna+=yyleng;}
 .                                                      {if(getPrint || getPrintEronly)printf("Line %d, col %d: illegal character (%s)\n", numLinha, numColuna, yytext);numColuna+=yyleng;}
 
@@ -179,11 +171,6 @@ int main(int argc,char* argv[]){
             getPrint=false;
             getPrintEronly=true;
         }
-    }
-    else if (argc == 1){
-        getPrint=true;
-    } else {
-        printf("./jucompiler -l / -e1\n");
     }
     yylex();
     return 0;
