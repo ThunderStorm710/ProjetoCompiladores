@@ -112,7 +112,7 @@
 };
 
 %%
-Program              :   FunctionsAndDeclarations                                    {$$ = newNode("Program"); $$->child=$1; if (printTree==true && hasError==false){printASTree($$,0);} else{freeASTree($$);}}
+Program                     :   FunctionsAndDeclarations                                    {$$ = newNode("Program"); $$->child=$1; if (printTree==true && hasError==false){printASTree($$,0);} else{freeASTree($$);}}
                             ;
 FunctionsAndDeclarations    :   FunctionDefinition                                          {$$=$1;}
                             |   FunctionDeclaration                                         {$$=$1;}

@@ -66,7 +66,7 @@ PARSEINT                                               Integer"."parseInt
 CLASS                                                  class 
 
 /***********************************************TOKEN COMPOSTOS*********************************************************************/
-STR                                                    (\.|\\\"|[^\r\n\"\\.]|\\n|\\t|\\\\|\\r|\\f)+
+STRLIT                                                    (\.|\\\"|[^\r\n\"\\.]|\\n|\\t|\\\\|\\r|\\f)+
 SPACE                                                  (\t|\f|" ")+
 ID                                                     ({LETRA}|"_"|"$")({LETRA}|"_"|"$"|{DIGIT})* 
 INTLIT                                                 ("0"|{DIGITW0}+(("_")*{DIGIT}+)*)
@@ -93,9 +93,9 @@ RESERVED                                               (private|goto|do|synchron
 
 "\""                                                   {BEGIN STRING; aspaPos = numColuna; numColuna+=yyleng;} 
 <STRING><<EOF>>                                        {BEGIN 0; if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, aspaPos);}
-<STRING>{STR}?\"                                       {BEGIN 0; if(getPrint) printf("STRLIT(\"%s)\n",yytext);numColuna+=yyleng;}
-<STRING>{STR}?{CR_LN}                                  {BEGIN 0; if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, aspaPos);numColuna=1;numLinha++;}
-<STRING>{STR}?\\                                       {BEGIN ESCAPE_ERROR;  numColuna+=yyleng; barraPos = numColuna - 1;}
+<STRING>{STRLIT}?\"                                       {BEGIN 0; if(getPrint) printf("STRLIT(\"%s)\n",yytext);numColuna+=yyleng;}
+<STRING>{STRLIT}?{CR_LN}                                  {BEGIN 0; if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, aspaPos);numColuna=1;numLinha++;}
+<STRING>{STRLIT}?\\                                       {BEGIN ESCAPE_ERROR;  numColuna+=yyleng; barraPos = numColuna - 1;}
 
 
 <ESCAPE_ERROR>{CR_LN}                                  {BEGIN 0; if(getPrint || getPrintEronly) {
@@ -105,10 +105,10 @@ RESERVED                                               (private|goto|do|synchron
 <ESCAPE_ERROR>[^ntfr\"\\]                              {BEGIN STRING_AFTER_ERROR; if(getPrint || getPrintEronly) printf("Line %d, col %d: invalid escape sequence (\\%s)\n", numLinha, barraPos, yytext); numColuna+=yyleng;}
 
 
-<STRING_AFTER_ERROR>{STR}?\"                           {BEGIN 0;numColuna+=yyleng;}
+<STRING_AFTER_ERROR>{STRLIT}?\"                           {BEGIN 0;numColuna+=yyleng;}
 <STRING_AFTER_ERROR><<EOF>>                            {BEGIN 0; if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, aspaPos);}
-<STRING_AFTER_ERROR>{STR}?{CR_LN}                      {BEGIN 0;if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, aspaPos);numColuna=1;numLinha++;}
-<STRING_AFTER_ERROR>{STR}?\\                           {BEGIN ESCAPE_ERROR; numColuna+=yyleng; barraPos = numColuna - 1;}
+<STRING_AFTER_ERROR>{STRLIT}?{CR_LN}                      {BEGIN 0;if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, aspaPos);numColuna=1;numLinha++;}
+<STRING_AFTER_ERROR>{STRLIT}?\\                           {BEGIN ESCAPE_ERROR; numColuna+=yyleng; barraPos = numColuna - 1;}
 
 
 {CLASS}                                                {if(getPrint)printf("CLASS\n");numColuna+=yyleng;}

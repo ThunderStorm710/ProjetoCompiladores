@@ -16,18 +16,31 @@ int hasError;
 char temp[256];
 %}
 
+%union{
+    struct node* node;
+    char* id;
+    char* strlit;
+    int intlit;
+    float reallit;
+};
+
 
 %type <node> Program
+%type <node> ProgramRec
 %type <node> MethodDecl
+%type <node> FieldDeclRec
 %type <node> FieldDecl
 %type <node> Type
 %type <node> MethodHeader
+%type <node> FormalParamsRec
 %type <node> FormalParams
 %type <node> MethodBody
+%type <node> MethodBodyRec
 %type <node> VarDecl
+%type <node> VarDeclRec
 %type <node> Statement
 %type <node> MethodInvocation
-%type <node> MethodInvocationRecursive
+%type <node> MethodInvocationRec
 %type <node> Assignment
 %type <node> Expr
 %type <node> ParseArgs
@@ -103,15 +116,6 @@ char temp[256];
 %nonassoc               LOWER
 %nonassoc               ELSE
 %nonassoc               HIGHER
-
-
-%union{
-    //struct node* node;
-    char* id;
-    char* strlit;
-    int intlit;
-    float reallit;
-};
 
 %%
 Program             :          CLASS ID LBRACE RBRACE
@@ -201,13 +205,13 @@ Statement           :           LBRACE Statement RBRACE
 
 
 MethodInvocation    :           ID LPAR RPAR
-                    |           ID LPAR Expr MethodBodyRec RPAR
+                    |           ID LPAR Expr MethodInvocationRec RPAR
                     |           ID LPAR Expr RPAR
                     |           ID LPAR error RPAR
                     ;
 
-MethodInvocationRecursive       :      COMMA Expr
-                                |      MethodBodyRec COMMA Expr
+MethodInvocationRec             :      COMMA Expr
+                                |      MethodInvocationRec COMMA Expr
                                 ;
 
 
