@@ -11,9 +11,12 @@
 #define true 1
 int getPrint=false;
 int getPrintEronly=false;
+int getTree = false;
+int getYacc = false;
 int numLinha=1;
 int numColuna=1;
 int aspaPos, barraPos, commentColuna, commentLinha;
+int yyparse(void);
 %}
 
 /************************************************TOKEN SIMPLES**********************************************************************/
@@ -66,7 +69,7 @@ PARSEINT                                               Integer"."parseInt
 CLASS                                                  class 
 
 /***********************************************TOKEN COMPOSTOS*********************************************************************/
-STRLIT                                                    (\.|\\\"|[^\r\n\"\\.]|\\n|\\t|\\\\|\\r|\\f)+
+STRLIT                                                 (\.|\\\"|[^\r\n\"\\.]|\\n|\\t|\\\\|\\r|\\f)+
 SPACE                                                  (\t|\f|" ")+
 ID                                                     ({LETRA}|"_"|"$")({LETRA}|"_"|"$"|{DIGIT})* 
 INTLIT                                                 ("0"|{DIGITW0}+(("_")*{DIGIT}+)*)
@@ -93,9 +96,9 @@ RESERVED                                               (private|goto|do|synchron
 
 "\""                                                   {BEGIN STRING; aspaPos = numColuna; numColuna+=yyleng;} 
 <STRING><<EOF>>                                        {BEGIN 0; if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, aspaPos);}
-<STRING>{STRLIT}?\"                                       {BEGIN 0; if(getPrint) printf("STRLIT(\"%s)\n",yytext);numColuna+=yyleng;}
-<STRING>{STRLIT}?{CR_LN}                                  {BEGIN 0; if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, aspaPos);numColuna=1;numLinha++;}
-<STRING>{STRLIT}?\\                                       {BEGIN ESCAPE_ERROR;  numColuna+=yyleng; barraPos = numColuna - 1;}
+<STRING>{STRLIT}?\"                                    {BEGIN 0; if(getPrint) printf("STRLIT(\"%s)\n",yytext);numColuna+=yyleng;}
+<STRING>{STRLIT}?{CR_LN}                               {BEGIN 0; if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, aspaPos);numColuna=1;numLinha++;}
+<STRING>{STRLIT}?\\                                    {BEGIN ESCAPE_ERROR;  numColuna+=yyleng; barraPos = numColuna - 1;}
 
 
 <ESCAPE_ERROR>{CR_LN}                                  {BEGIN 0; if(getPrint || getPrintEronly) {
@@ -105,10 +108,10 @@ RESERVED                                               (private|goto|do|synchron
 <ESCAPE_ERROR>[^ntfr\"\\]                              {BEGIN STRING_AFTER_ERROR; if(getPrint || getPrintEronly) printf("Line %d, col %d: invalid escape sequence (\\%s)\n", numLinha, barraPos, yytext); numColuna+=yyleng;}
 
 
-<STRING_AFTER_ERROR>{STRLIT}?\"                           {BEGIN 0;numColuna+=yyleng;}
+<STRING_AFTER_ERROR>{STRLIT}?\"                        {BEGIN 0;numColuna+=yyleng;}
 <STRING_AFTER_ERROR><<EOF>>                            {BEGIN 0; if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, aspaPos);}
-<STRING_AFTER_ERROR>{STRLIT}?{CR_LN}                      {BEGIN 0;if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, aspaPos);numColuna=1;numLinha++;}
-<STRING_AFTER_ERROR>{STRLIT}?\\                           {BEGIN ESCAPE_ERROR; numColuna+=yyleng; barraPos = numColuna - 1;}
+<STRING_AFTER_ERROR>{STRLIT}?{CR_LN}                   {BEGIN 0;if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, aspaPos);numColuna=1;numLinha++;}
+<STRING_AFTER_ERROR>{STRLIT}?\\                        {BEGIN ESCAPE_ERROR; numColuna+=yyleng; barraPos = numColuna - 1;}
 
 
 {CLASS}                                                {if(getPrint)printf("CLASS\n");numColuna+=yyleng;}
@@ -167,18 +170,57 @@ RESERVED                                               (private|goto|do|synchron
 %%
 
 int main(int argc,char* argv[]){
-    if (argc == 2){
+    switch(argc){
+    case 1:
+    //imprimir erros do lex/flex e do yacc
+        getPrint = false;
+        getPrintEronly = true;
+        getTree = false;
+        getYacc = true;
+        yyparse();
+        break;
+
+    case 2:
+        //imprimir tokens e erros do lex/flex
         if (strcmp(argv[1], "-l") == 0){
-            getPrint=true;
-        }else if(strcmp(argv[1], "-e1") == 0){
-            getPrint=false;
-            getPrintEronly=true;
+            getPrint = true;
+            getPrintEronly = true;
+            yylex();
+
+            //imprimir apenas erros do lex/flex
+        } else if (strcmp(argv[1], "-e1") == 0){
+            getPrintEronly = true;
+            getPrint = false;
+            yylex();
+
+        //imprimir tokens e erros do yyac
+        } else if (strcmp(argv[1], "-t") == 0){
+            getTree = true;
+            getYacc = true;
+            yyparse();
+
+        //imprimir erros do yyac
+        } else if (strcmp(argv[1], "-e2") == 0){
+            getYacc = true;
+            yyparse();
         }
-    }
-    yylex();
-    return 0;
+        break;
+    }  
+    return 0;    
+}
+    
+int yywrap(){
+    return 1;
 }
 
-int yywrap() {
-    return 1;
+void yyerror(const char *s) {
+    switch(strlen(yytext)){
+        case 0:
+            printf("Line %d, col %d: %s: %s\n", line, col, s, yytext);
+            break;
+        default:
+            printf("Line %d, col %d: %s: %s\n", line, (int)(col-yyleng), s, yytext);
+            break;
+    }
+
 }

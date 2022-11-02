@@ -1,23 +1,23 @@
 %{
-/************Autores*************
-* Pedro Ascensão   -   2020233012
-* Leonardo Pina    -   2019234318
-*********************************/
-#include <stdio.h>
-//#include "ASTree.h"
-#define true 1
-#define false 0
-int yylex(void);
+    /************Autores*************
+    * Pedro Ascensão   -   2020233012
+    * Leonardo Pina    -   2019234318
+    *********************************/
+    #include <stdio.h>
+    #include "Tree.h"
+    #define true 1
+    #define false 0
+    int yylex(void);
+    void yyerror (const char *s);
 
-void yyerror (const char *s);
-char* yytext;
-int printTree;
-int hasError;
-char temp[256];
+    char* yytext;
+    int printTree;
+    int hasError;
+    char temp[256];
 %}
 
 %union{
-    struct node* node;
+    struct no* no;
     char* id;
     char* strlit;
     int intlit;
@@ -25,25 +25,25 @@ char temp[256];
 };
 
 
-%type <node> Program
-%type <node> ProgramRec
-%type <node> MethodDecl
-%type <node> FieldDeclRec
-%type <node> FieldDecl
-%type <node> Type
-%type <node> MethodHeader
-%type <node> FormalParamsRec
-%type <node> FormalParams
-%type <node> MethodBody
-%type <node> MethodBodyRec
-%type <node> VarDecl
-%type <node> VarDeclRec
-%type <node> Statement
-%type <node> MethodInvocation
-%type <node> MethodInvocationRec
-%type <node> Assignment
-%type <node> Expr
-%type <node> ParseArgs
+%type <no> Program
+%type <no> ProgramRec
+%type <no> MethodDecl
+%type <no> FieldDeclRec
+%type <no> FieldDecl
+%type <no> Type
+%type <no> MethodHeader
+%type <no> FormalParamsRec
+%type <no> FormalParams
+%type <no> MethodBody
+%type <no> MethodBodyRec
+%type <no> VarDecl
+%type <no> VarDeclRec
+%type <no> Statement
+%type <no> MethodInvocation
+%type <no> MethodInvocationRec
+%type <no> Assignment
+%type <no> Expr
+%type <no> ParseArgs
 
 
 %token                  COMMA
@@ -118,21 +118,21 @@ char temp[256];
 %nonassoc               HIGHER
 
 %%
-Program             :          CLASS ID LBRACE RBRACE
-                    |          CLASS ID LBRACE ProgramRec RBRACE
+Program             :          CLASS ID LBRACE RBRACE                                           {}
+                    |          CLASS ID LBRACE ProgramRec RBRACE                                {$$ = novoNo("Program")}
                     ;
 
 ProgramRec          :       
-                    |          MethodDecl
-                    |          FieldDecl
-                    |          SEMICOLON   
-                    |          ProgramRec MethodDecl
-                    |          Program FieldDecl
-                    |          Program SEMICOLON
+                    |          MethodDecl                                                       {$$ = $1;}
+                    |          FieldDecl                                                        {$$ = $1;}
+                    |          SEMICOLON                                                        {$$ = NULL;}
+                    |          ProgramRec MethodDecl                                            {$$ = $1;}
+                    |          ProgramRec FieldDecl                                             {$$ = $1;}
+                    |          ProgramRec SEMICOLON                                             {$$ = $1;}
                     ;
 
                     
-MethodDecl          :          PUBLIC STATIC MethodHeader MethodBody
+MethodDecl          :          PUBLIC STATIC MethodHeader MethodBody     {$$ = $;}
                     ;
 
 
@@ -219,37 +219,37 @@ Assignment          :           ID ASSIGN Expr
                     ;
 
 
-ParseArgs           :           PARSEINT LPAR ID LSQ Expr RSQ RPAR
-                    |           PARSEINT LPAR error RPAR
+ParseArgs           :           PARSEINT LPAR ID LSQ Expr RSQ RPAR                              {$$=novoNo(NULL);}
+                    |           PARSEINT LPAR error RPAR                                        {$$=novoNo(NULL);}
                     ;
 
 
-Expr                :           Expr PLUS Expr           
-                    |           Expr MINUS Expr
-                    |           Expr STAR Expr
-                    |           Expr DIV Expr 
-                    |           Expr MOD Expr
-                    |           Expr AND Expr
-                    |           Expr OR Expr
-                    |           Expr XOR Expr
-                    |           Expr LSHIFT Expr
-                    |           Expr RSHIFT Expr
-                    |           Expr EQ Expr
-                    |           Expr GE Expr
-                    |           Expr GT Expr
-                    |           Expr LE Expr
-                    |           Expr LT Expr
-                    |           Expr NE Expr
-                    |           MINUS Expr
-                    |           NOT Expr
-                    |           PLUS Expr
-                    |           LPAR Expr RPAR
+Expr                :           Expr PLUS Expr                                                  {$$ = novoNo("PLUS"); $$->child=$1; novoIrmao($1,$3);}
+                    |           Expr MINUS Expr                                                 {$$ = novoNo("MINUS"); $$->child=$1; novoIrmao($1,$3);}
+                    |           Expr STAR Expr                                                  {$$ = novoNo("STAR"); $$->child=$1; novoIrmao($1,$3);}
+                    |           Expr DIV Expr                                                   {$$ = novoNo("DIV"); $$->child=$1; novoIrmao($1,$3);}
+                    |           Expr MOD Expr                                                   {$$ = novoNo("MOD"); $$->child=$1; novoIrmao($1,$3);}
+                    |           Expr AND Expr                                                   {$$ = novoNo("AND"); $$->child=$1; novoIrmao($1,$3);}
+                    |           Expr OR Expr                                                    {$$ = novoNo("OR"); $$->child=$1; novoIrmao($1,$3);}
+                    |           Expr XOR Expr                                                   {$$ = novoNo("XOR"); $$->child=$1; novoIrmao($1,$3);}
+                    |           Expr LSHIFT Expr                                                {$$ = novoNo("LSHIFT"); $$->child=$1; novoIrmao($1,$3);}
+                    |           Expr RSHIFT Expr                                                {$$ = novoNo("RSHIFT"); $$->child=$1; novoIrmao($1,$3);}
+                    |           Expr EQ Expr                                                    {$$ = novoNo("EQ"); $$->child=$1; novoIrmao($1,$3);}
+                    |           Expr GE Expr                                                    {$$ = novoNo("GE"); $$->child=$1; novoIrmao($1,$3);}
+                    |           Expr GT Expr                                                    {$$ = novoNo("GT"); $$->child=$1; novoIrmao($1,$3);}
+                    |           Expr LE Expr                                                    {$$ = novoNo("LE"); $$->child=$1; novoIrmao($1,$3);}
+                    |           Expr LT Expr                                                    {$$ = novoNo("LT"); $$->child=$1; novoIrmao($1,$3);}
+                    |           Expr NE Expr                                                    {$$ = novoNo("NE"); $$->child=$1; novoIrmao($1,$3);}
+                    |           MINUS Expr                                                      {$$ = novoNo("MINUS"); $$->child=$2;}
+                    |           NOT Expr                                                        {$$ = novoNo("NOT"); $$->child=$2;} 
+                    |           PLUS Expr                                                       {$$ = novoNo("PLUS"); $$->child=$2;}
+                    |           LPAR Expr RPAR                                                  
                     |           MethodInvocation | Assignment | ParseArgs
-                    |           ID
-                    |           ID DOTLENGTH
-                    |           INTLIT
-                    |           REALLIT
-                    |           BOOLLIT
-                    |           LPAR error RPAR
+                    |           ID                                                              {sprintf(temp, "Id(%s)", $1); $$ = novoNo(strdup(temp));}
+                    |           ID DOTLENGTH                                                    {$$ = novoNo("Call"); sprintf(temp, "Id(%s)", $1); $$->child = novoNo(strdup(temp));}
+                    |           INTLIT                                                          {sprintf(temp, "Intllit(%s)", $1); $$ = novoNo(strdup(temp));}
+                    |           REALLIT                                                         {sprintf(temp, "Reallit(%s)", $1); $$ = novoNo(strdup(temp));}
+                    |           BOOLLIT                                                         {sprintf(temp,"Boollit(%s)", $1);$$ = novoNo(strdup(temp));}
+                    |           LPAR error RPAR                                                 {$$=novoNo(NULL);}
                     ;
  %%
