@@ -15,7 +15,6 @@
 #define true 1
 int getPrint=false;
 int getPrintEronly=false;
-int getTree = false;
 int getYacc = false;
 int numLinha=1;
 int numColuna=1;
@@ -177,7 +176,6 @@ int main(int argc,char* argv[]){
         //imprimir erros do lex/flex e do yacc
         getPrint = false;
         getPrintEronly = true;
-        getTree = false;
         getYacc = true;
         yyparse();
     
@@ -198,7 +196,6 @@ int main(int argc,char* argv[]){
 
         }else if(strcmp(argv[1],"-t")==0){
             //imprimir tokens e erros do yyac
-            getTree = true;
             getYacc = true;
             getPrintEronly = true;
 			yyparse();
