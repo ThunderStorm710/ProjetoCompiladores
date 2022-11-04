@@ -159,11 +159,12 @@ RESERVED                                   (private|goto|do|synchronized|package
 {RETURN}                                   {if(getPrint)printf("RETURN\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if(getYacc)return RETURN;}
 {PUBLIC}                                   {if(getPrint)printf("PUBLIC\n");numColuna+=yyleng; if(getYacc)return PUBLIC;}
 {PARSEINT}                                 {if(getPrint)printf("PARSEINT\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if(getYacc) return PARSEINT;}
-{RESERVED}                                 {if(getPrint)printf("RESERVED(%s)\n",yytext);numColuna+=yyleng;}
+{RESERVED}                                 {if(getPrint)printf("RESERVED(%s)\n",yytext);numColuna+=yyleng; if(getYacc) return RESERVED;}
 {ID}                                       {if(getPrint)printf("ID(%s)\n",yytext); numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if(getYacc) return ID;}
 {INTLIT}                                   {if(getPrint)printf("INTLIT(%s)\n",yytext);numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if(getYacc)return INTLIT;}
 {REALLIT}                                  {if(getPrint)printf("REALLIT(%s)\n",yytext);numColuna+=yyleng; yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if(getYacc) return REALLIT;}
 
+<<EOF>>                                    {numColuna+=yyleng; return 0;}
 {CR_LN}                                    {numColuna=1; numLinha++;}; 
 {SPACE}                                    {numColuna+=yyleng;}
 .                                          {if(getPrint || getPrintEronly)printf("Line %d, col %d: illegal character (%s)\n", numLinha, numColuna, yytext);numColuna+=yyleng;}
