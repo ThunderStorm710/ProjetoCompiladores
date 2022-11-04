@@ -42,8 +42,6 @@
 %nonassoc       ELSE
 
 
-
-
 %left           COMMA
 %right          ASSIGN
 %left           OR
@@ -51,13 +49,12 @@
 %left           XOR
 %left           EQ NE
 %left           LT GT LE GE
+%left           LSHIFT RSHIFT
 %left           PLUS MINUS
 %left           STAR DIV MOD
 %right          NOT
 %left           LPAR
 %left           RPAR
-%left           LSHIFT
-%left           RSHIFT
 
 %type  <node>   Program ProgramRec MethodDecl FieldDeclRec FieldDecl Type MethodHeader FormalParamsRec FormalParams MethodBody MethodBodyRec VarDecl 
                 VarDeclRec Statement MethodInvocation MethodInvocationRec Assignment Expr Expr2 ParseArgs StatementRec
@@ -296,13 +293,14 @@ ParseArgs               :   PARSEINT LPAR ID LSQ Expr RSQ RPAR              {$$ 
                         ;
 
 Expr                    :   Assignment                                      {$$ = $1;}
+
                         |   Expr2                                           {$$ = $1;}
                         ;
 
 Expr2                   :   Expr2 PLUS Expr2                                {$$ = createNode("Add", NULL, $2->line, $2->coluna);
                                                                             insertChildren($$,$1); insertBrother($1,$3); freeToken($2);}  
 
-                        |   Expr2 MINUS Expr2                               {$$ = createNode("Minus", NULL, $2->line, $2->coluna);
+                        |   Expr2 MINUS Expr2                               {$$ = createNode("Sub", NULL, $2->line, $2->coluna);
                                                                             insertChildren($$,$1); insertBrother($1,$3); freeToken($2);}
 
                         |   Expr2 STAR Expr2                                {$$ = createNode("Mul", NULL, $2->line, $2->coluna);
@@ -323,10 +321,10 @@ Expr2                   :   Expr2 PLUS Expr2                                {$$ 
                         |   Expr2 XOR Expr2                                 {$$ = createNode("Xor", NULL, $2->line, $2->coluna);
                                                                             insertChildren($$,$1); insertBrother($1,$3); freeToken($2);}
 
-                        |   Expr2 LSHIFT Expr2                              {$$ = createNode("LShift", NULL, $2->line, $2->coluna);
+                        |   Expr2 LSHIFT Expr2                              {$$ = createNode("Lshift", NULL, $2->line, $2->coluna);
                                                                             insertChildren($$,$1); insertBrother($1,$3); freeToken($2);}
 
-                        |   Expr2 RSHIFT Expr2                              {$$ = createNode("RShift", NULL, $2->line, $2->coluna);
+                        |   Expr2 RSHIFT Expr2                              {$$ = createNode("Rshift", NULL, $2->line, $2->coluna);
                                                                             insertChildren($$,$1); insertBrother($1,$3); freeToken($2);}
 
                         |   Expr2 EQ Expr2                                  {$$ = createNode("Eq", NULL, $2->line, $2->coluna);
@@ -374,8 +372,8 @@ Expr2                   :   Expr2 PLUS Expr2                                {$$ 
                                                                             freeToken($1);}
 
                         |   BOOLLIT                                         {$$ = createNode("BoolLit", $1->value, $1->line, $1->coluna); 
-
                                                                             freeToken($1);}
+                                                                            
                         |   LPAR error RPAR                                 {$$ = createNode("Error", NULL, 0, 0);}
                         ;
 %%

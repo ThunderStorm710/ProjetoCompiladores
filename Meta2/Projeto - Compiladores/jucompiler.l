@@ -15,6 +15,8 @@
 #define true 1
 int getPrint=false;
 int getPrintEronly=false;
+int getTree = false;
+int getYacc = false;
 int numLinha=1;
 int numColuna=1;
 int numErrors=0;
@@ -100,7 +102,7 @@ RESERVED                                   (private|goto|do|synchronized|package
 
 "\""                                       {BEGIN STRING; aspaPos = numColuna; numColuna+=yyleng;} 
 <STRING><<EOF>>                            {BEGIN 0; if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, aspaPos);}
-<STRING>{STRLIT}?\"                        {BEGIN 0; if(getPrint) printf("STRLIT(\"%s)\n",yytext);numColuna+=yyleng;}
+<STRING>{STRLIT}?\"                        {BEGIN 0; if(getPrint) printf("STRLIT(\"%s)\n",yytext); char aux[yyleng+1]; sprintf(aux, "\"%s",yytext); numColuna+=yyleng; yylval.value = createToken(aux, numLinha, numColuna-strlen(yytext)); if (getYacc) return STRLIT;}
 <STRING>{STRLIT}?{CR_LN}                   {BEGIN 0; if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, aspaPos);numColuna=1;numLinha++;}
 <STRING>{STRLIT}?\\                        {BEGIN ESCAPE_ERROR;  numColuna+=yyleng; barraPos = numColuna - 1;}
 
@@ -115,53 +117,53 @@ RESERVED                                   (private|goto|do|synchronized|package
 <STRING_AFTER_ERROR>{STRLIT}?\\            {BEGIN ESCAPE_ERROR; numColuna+=yyleng; barraPos = numColuna - 1;}
 
 
-{CLASS}                                    {if(getPrint)printf("CLASS\n");numColuna+=yyleng;{return CLASS;}}
-{COMMA}                                    {if(getPrint)printf("COMMA\n");numColuna+=yyleng;{return COMMA;}}
-{MINUS}                                    {if(getPrint)printf("MINUS\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return MINUS;}}
-{LT}                                       {if(getPrint)printf("LT\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return LT;}}
-{LSQ}                                      {if(getPrint)printf("LSQ\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return LSQ;}}
-{LPAR}                                     {if(getPrint)printf("LPAR\n");numColuna+=yyleng;{return LPAR;}}
-{LE}                                       {if(getPrint)printf("LE\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return LE;}}
-{LBRACE}                                   {if(getPrint)printf("LBRACE\n");numColuna+=yyleng;{return LBRACE;}}
-{GT}                                       {if(getPrint)printf("GT\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return GT;}}
-{GE}                                       {if(getPrint)printf("GE\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return GE;}}
-{DIV}                                      {if(getPrint)printf("DIV\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return DIV;}}
-{STAR}                                     {if(getPrint)printf("STAR\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return STAR;}}
-{EQ}                                       {if(getPrint)printf("EQ\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return EQ;}}
-{ASSIGN}                                   {if(getPrint)printf("ASSIGN\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return ASSIGN;}}
-{AND}                                      {if(getPrint)printf("AND\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return AND;}}
-{SEMICOLON}                                {if(getPrint)printf("SEMICOLON\n");numColuna+=yyleng;{return SEMICOLON;}}
-{RSQ}                                      {if(getPrint)printf("RSQ\n");numColuna+=yyleng;{return RSQ;}}
-{RPAR}                                     {if(getPrint)printf("RPAR\n");numColuna+=yyleng;{return RPAR;}}
-{RBRACE}                                   {if(getPrint)printf("RBRACE\n");numColuna+=yyleng;{return RBRACE;}}
-{PLUS}                                     {if(getPrint)printf("PLUS\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return PLUS;}}
-{OR}                                       {if(getPrint)printf("OR\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return OR;}}
-{NOT}                                      {if(getPrint)printf("NOT\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return NOT;}}
-{NE}                                       {if(getPrint)printf("NE\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return NE;}}
-{MOD}                                      {if(getPrint)printf("MOD\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return MOD;}}
-{XOR}                                      {if(getPrint)printf("XOR\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return XOR;}}
-{RSHIFT}                                   {if(getPrint)printf("RSHIFT\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return RSHIFT;}}
-{LSHIFT}                                   {if(getPrint)printf("LSHIFT\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return LSHIFT;}}
-{ARROW}                                    {if(getPrint)printf("ARROW\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return ARROW;}}
-{BOOL}                                     {if(getPrint)printf("BOOL\n");numColuna+=yyleng;{return BOOL;}}
-{INT}                                      {if(getPrint)printf("INT\n");numColuna+=yyleng;{return INT;}}
-{IF}                                       {if(getPrint)printf("IF\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return IF;}}
-{ELSE}                                     {if(getPrint)printf("ELSE\n");numColuna+=yyleng;{return ELSE;}}
-{DOUBLE}                                   {if(getPrint)printf("DOUBLE\n");numColuna+=yyleng;{return DOUBLE;}}
-{DOTLENGTH}                                {if(getPrint)printf("DOTLENGTH\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return DOTLENGTH;}}
-{PRINT}                                    {if(getPrint)printf("PRINT\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return PRINT;}}
-{BOOLLIT}                                  {if(getPrint)printf("BOOLLIT(%s)\n",yytext);numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return BOOLLIT;}}
-{WHILE}                                    {if(getPrint)printf("WHILE\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return WHILE;}}
-{VOID}                                     {if(getPrint)printf("VOID\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return VOID;}}
-{STRING}                                   {if(getPrint)printf("STRING\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return STRLIT;}}
-{STATIC}                                   {if(getPrint)printf("STATIC\n");numColuna+=yyleng;{return STATIC;}}
-{RETURN}                                   {if(getPrint)printf("RETURN\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return RETURN;}}
-{PUBLIC}                                   {if(getPrint)printf("PUBLIC\n");numColuna+=yyleng;{return PUBLIC;}}
-{PARSEINT}                                 {if(getPrint)printf("PARSEINT\n");numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return PARSEINT;}}
+{CLASS}                                    {if(getPrint)printf("CLASS\n");numColuna+=yyleng; if (getYacc) return CLASS;}
+{COMMA}                                    {if(getPrint)printf("COMMA\n");numColuna+=yyleng; if (getYacc) return COMMA;}
+{MINUS}                                    {if(getPrint)printf("MINUS\n");numColuna+=yyleng; yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if (getYacc) return MINUS;}
+{LT}                                       {if(getPrint)printf("LT\n");numColuna+=yyleng; yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if (getYacc) return LT;}
+{LSQ}                                      {if(getPrint)printf("LSQ\n");numColuna+=yyleng; yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if (getYacc) return LSQ;}
+{LPAR}                                     {if(getPrint)printf("LPAR\n");numColuna+=yyleng; if (getYacc) return LPAR;}
+{LE}                                       {if(getPrint)printf("LE\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if (getYacc) return LE;}
+{LBRACE}                                   {if(getPrint)printf("LBRACE\n");numColuna+=yyleng; if (getYacc)return LBRACE;}
+{GT}                                       {if(getPrint)printf("GT\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if (getYacc) return GT;}
+{GE}                                       {if(getPrint)printf("GE\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if (getYacc) return GE;}
+{DIV}                                      {if(getPrint)printf("DIV\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if (getYacc)return DIV;}
+{STAR}                                     {if(getPrint)printf("STAR\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if (getYacc) return STAR;}
+{EQ}                                       {if(getPrint)printf("EQ\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));if (getYacc) return EQ;}
+{ASSIGN}                                   {if(getPrint)printf("ASSIGN\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if (getYacc) return ASSIGN;}
+{AND}                                      {if(getPrint)printf("AND\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));if (getYacc) return AND;}
+{SEMICOLON}                                {if(getPrint)printf("SEMICOLON\n");numColuna+=yyleng; if (getYacc) return SEMICOLON;}
+{RSQ}                                      {if(getPrint)printf("RSQ\n");numColuna+=yyleng; if (getYacc) return RSQ;}
+{RPAR}                                     {if(getPrint)printf("RPAR\n");numColuna+=yyleng; if (getYacc) return RPAR;}
+{RBRACE}                                   {if(getPrint)printf("RBRACE\n");numColuna+=yyleng; if (getYacc) return RBRACE;}
+{PLUS}                                     {if(getPrint)printf("PLUS\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if (getYacc) return PLUS;}
+{OR}                                       {if(getPrint)printf("OR\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if (getYacc) return OR;}
+{NOT}                                      {if(getPrint)printf("NOT\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));if (getYacc) return NOT;}
+{NE}                                       {if(getPrint)printf("NE\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));if (getYacc)return NE;}
+{MOD}                                      {if(getPrint)printf("MOD\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));if (getYacc)return MOD;}
+{XOR}                                      {if(getPrint)printf("XOR\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));if (getYacc)return XOR;}
+{RSHIFT}                                   {if(getPrint)printf("RSHIFT\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));if (getYacc)return RSHIFT;}
+{LSHIFT}                                   {if(getPrint)printf("LSHIFT\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));if (getYacc)return LSHIFT;}
+{ARROW}                                    {if(getPrint)printf("ARROW\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));if (getYacc)return ARROW;}
+{BOOL}                                     {if(getPrint)printf("BOOL\n");numColuna+=yyleng; if (getYacc)return BOOL;}
+{INT}                                      {if(getPrint)printf("INT\n");numColuna+=yyleng; if (getYacc) return INT;}
+{IF}                                       {if(getPrint)printf("IF\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if(getYacc) return IF;}
+{ELSE}                                     {if(getPrint)printf("ELSE\n");numColuna+=yyleng; if(getYacc) return ELSE;}
+{DOUBLE}                                   {if(getPrint)printf("DOUBLE\n");numColuna+=yyleng; if(getYacc)return DOUBLE;}
+{DOTLENGTH}                                {if(getPrint)printf("DOTLENGTH\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if(getYacc)return DOTLENGTH;}
+{PRINT}                                    {if(getPrint)printf("PRINT\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if(getYacc) return PRINT;}
+{BOOLLIT}                                  {if(getPrint)printf("BOOLLIT(%s)\n",yytext);numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if(getYacc) return BOOLLIT;}
+{WHILE}                                    {if(getPrint)printf("WHILE\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if(getYacc) return WHILE;}
+{VOID}                                     {if(getPrint)printf("VOID\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if(getYacc)return VOID;}
+{STRING}                                   {if(getPrint)printf("STRLIT\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if(getYacc)return STRLIT;}
+{STATIC}                                   {if(getPrint)printf("STATIC\n");numColuna+=yyleng; if(getYacc)return STATIC;}
+{RETURN}                                   {if(getPrint)printf("RETURN\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if(getYacc)return RETURN;}
+{PUBLIC}                                   {if(getPrint)printf("PUBLIC\n");numColuna+=yyleng; if(getYacc)return PUBLIC;}
+{PARSEINT}                                 {if(getPrint)printf("PARSEINT\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if(getYacc) return PARSEINT;}
 {RESERVED}                                 {if(getPrint)printf("RESERVED(%s)\n",yytext);numColuna+=yyleng;}
-{ID}                                       {if(getPrint)printf("ID(%s)\n",yytext); numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return ID;}}
-{INTLIT}                                   {if(getPrint)printf("INTLIT(%s)\n",yytext);numColuna+=yyleng;{yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return INTLIT;}}
-{REALLIT}                                  {if(getPrint)printf("REALLIT(%s)\n",yytext);numColuna+=yyleng; yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext));return REALLIT;}
+{ID}                                       {if(getPrint)printf("ID(%s)\n",yytext); numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if(getYacc) return ID;}
+{INTLIT}                                   {if(getPrint)printf("INTLIT(%s)\n",yytext);numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if(getYacc)return INTLIT;}
+{REALLIT}                                  {if(getPrint)printf("REALLIT(%s)\n",yytext);numColuna+=yyleng; yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if(getYacc) return REALLIT;}
 
 {CR_LN}                                    {numColuna=1; numLinha++;}; 
 {SPACE}                                    {numColuna+=yyleng;}
@@ -171,17 +173,34 @@ RESERVED                                   (private|goto|do|synchronized|package
 %%
 
 int main(int argc,char* argv[]){
-    if (argc == 2){
+    if (argc == 1 || (argc == 2 && strcmp(argv[1], "-e2") == 0)){
+        //imprimir erros do lex/flex e do yacc
+        getPrint = false;
+        getPrintEronly = true;
+        getTree = false;
+        getYacc = true;
+        yyparse();
+    
+    } else if (argc == 2){
+        
         if (strcmp(argv[1], "-l") == 0){
+            //imprimir tokens e erros do lex/flex
             getPrint=true;
+            getPrintEronly = true;
             yylex();
+
+        
         }else if(strcmp(argv[1], "-e1") == 0){
+            //imprimir apenas erros do lex/flex
             getPrint=false;
             getPrintEronly=true;
             yylex();
-        }else if(strcmp(argv[1],"-e2")==0){
-			yyparse();
+
         }else if(strcmp(argv[1],"-t")==0){
+            //imprimir tokens e erros do yyac
+            getTree = true;
+            getYacc = true;
+            getPrintEronly = true;
 			yyparse();
 			if(numErrors == 0){
 				printAST(head, 0);
