@@ -92,17 +92,17 @@ RESERVED                                   (private|goto|do|synchronized|package
 "/*"                                       {BEGIN COMENTARIO; commentColuna = numColuna; commentLinha = numLinha; numColuna+=yyleng;}
 <COMENTARIO>{CR_LN}                        {numColuna=1;numLinha++;}
 <COMENTARIO>.                              {numColuna+=yyleng;}
-<COMENTARIO><<EOF>>                        {BEGIN 0;if(getPrint || getPrintEronly)printf("Line %d, col %d: unterminated comment\n", commentLinha, commentColuna);numColuna=1;numLinha++;}
+<COMENTARIO><<EOF>>                        {if(getPrint || getPrintEronly)printf("Line %d, col %d: unterminated comment\n", commentLinha, commentColuna);numColuna+=yyleng; return 0;}
 <COMENTARIO>"*/"                           {BEGIN 0; numColuna+=yyleng;}
 
 "//"                                       {BEGIN COMENTARIO_SIMPLES;numColuna+=yyleng;}
 <COMENTARIO_SIMPLES>{CR_LN}                {BEGIN 0;numColuna=1;numLinha++;}
 <COMENTARIO_SIMPLES>.                      ;
 
-
+"\""{STRLIT}?"\""                          {if(getPrint) printf("STRLIT(%s)\n",yytext); numColuna+=yyleng; yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if (getYacc) return STRLIT;}
 "\""                                       {BEGIN STRING; aspaPos = numColuna; numColuna+=yyleng;} 
 <STRING><<EOF>>                            {BEGIN 0; if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, aspaPos);}
-<STRING>{STRLIT}?\"                        {BEGIN 0; if(getPrint) printf("STRLIT(\"%s)\n",yytext); char aux[yyleng+1]; sprintf(aux, "\"%s",yytext); numColuna+=yyleng; yylval.value = createToken(aux, numLinha, numColuna-strlen(yytext)); if (getYacc) return STRLIT;}
+<STRING>{STRLIT}?\"                        {BEGIN 0; if(getPrint) printf("STRLIT(\"%s)\n",yytext); char aux[yyleng+1]; sprintf(yytext, "\"%s",yytext); printf("'%s'\n", yytext); numColuna+=yyleng; yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if (getYacc) return STRLIT;}
 <STRING>{STRLIT}?{CR_LN}                   {BEGIN 0; if(getPrint || getPrintEronly) printf("Line %d, col %d: unterminated string literal\n", numLinha, aspaPos);numColuna=1;numLinha++;}
 <STRING>{STRLIT}?\\                        {BEGIN ESCAPE_ERROR;  numColuna+=yyleng; barraPos = numColuna - 1;}
 
@@ -155,7 +155,7 @@ RESERVED                                   (private|goto|do|synchronized|package
 {BOOLLIT}                                  {if(getPrint)printf("BOOLLIT(%s)\n",yytext);numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if(getYacc) return BOOLLIT;}
 {WHILE}                                    {if(getPrint)printf("WHILE\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if(getYacc) return WHILE;}
 {VOID}                                     {if(getPrint)printf("VOID\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if(getYacc)return VOID;}
-{STRING}                                   {if(getPrint)printf("STRLIT\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if(getYacc)return STRLIT;}
+{STRING}                                   {if(getPrint)printf("STRING\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if(getYacc)return STRLIT;}
 {STATIC}                                   {if(getPrint)printf("STATIC\n");numColuna+=yyleng; if(getYacc)return STATIC;}
 {RETURN}                                   {if(getPrint)printf("RETURN\n");numColuna+=yyleng;yylval.value = createToken(yytext, numLinha, numColuna-strlen(yytext)); if(getYacc)return RETURN;}
 {PUBLIC}                                   {if(getPrint)printf("PUBLIC\n");numColuna+=yyleng; if(getYacc)return PUBLIC;}
