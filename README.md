@@ -8,15 +8,15 @@
 
 
 ### Meta 2
-* A --> 172/190
-* B --> 18/25
-* C --> 10/25
-* D --> 4/35
+* A --> 250/250
+* B --> 25/25
+* C --> 25/25
+* D --> 35/35
 * E --> 30/30
-* F --> 36/45 
-* G --> 34/45
+* F --> 45/45 
+* G --> 45/45
 * H --> 40/40
-![image](https://user-images.githubusercontent.com/108558031/200048979-5f625d2d-5183-4dd9-bcda-55a7ad7dedb8.png)
+![image](https://user-images.githubusercontent.com/108558031/200077202-c066b7ea-5b3d-4502-b044-2d0d9d31b47d.png)
 
 
 
