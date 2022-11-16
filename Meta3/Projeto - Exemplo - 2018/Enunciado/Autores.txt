@@ -1,0 +1,7 @@
+Grupo: PaGo
+Nome1: Gonçalo Alexandre Pinto Lopes
+Numero1: 2014205060
+Email1: galopes@student.dei.uc.pt
+Nome2: Paulo Alexandre Patrão da Cruz
+Numero2: 2014205161
+Email2: pacruz@student.dei.uc.pt
