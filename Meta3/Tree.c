@@ -6,6 +6,7 @@
 #include <limits.h>
 #include <string.h>
 #include "Tree.h"
+#include "semantic.h"
 
 /* -------- TOKEN --------- */
 

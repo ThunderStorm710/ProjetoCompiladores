@@ -95,12 +95,8 @@ extern int yydebug;
     ID = 301,
     INTLIT = 302,
     REALLIT = 303,
-<<<<<<< HEAD
     RESERVED = 304,
     IFX = 305
-=======
-    IFX = 304
->>>>>>> e5019ebca0185701f4591f1e7b045fd55318a249
   };
 #endif
 /* Tokens.  */
@@ -150,36 +146,19 @@ extern int yydebug;
 #define ID 301
 #define INTLIT 302
 #define REALLIT 303
-<<<<<<< HEAD
 #define RESERVED 304
 #define IFX 305
-=======
-#define IFX 304
->>>>>>> e5019ebca0185701f4591f1e7b045fd55318a249
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-<<<<<<< HEAD
-#line 20 "jucompiler.y"
+#line 21 "jucompiler.y"
 
     struct token* token;
     struct node* node;
 
 #line 162 "y.tab.h"
-=======
-#line 28 "jucompiler.y"
-
-    struct token* value;
-    struct node* node;
-    char* id;
-    char* strlit;
-    int intlit;
-    float reallit;
-
-#line 164 "y.tab.h"
->>>>>>> e5019ebca0185701f4591f1e7b045fd55318a249
 
 };
 typedef union YYSTYPE YYSTYPE;
