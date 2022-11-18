@@ -138,8 +138,8 @@ void print_table_global(sym_table *atual){
                 auxP = auxP->next;
             }
             printf(")\t%s", auxV->type);
-        }
-        else{
+        
+        }else{
             printf("%s\t\t%s", auxV->name, auxV->type);
         }
 
@@ -168,18 +168,18 @@ void print_tables_local(sym_table *atual){
                 auxP = auxP->next;
             }
             printf(") Symbol Table =====\n");
-        }
-        else{
+        
+        }else{
             printf("===== %s %s() Symbol Table =====\n", aux->tableType, aux->tableName);
         }
         while(auxV != NULL){
             if(auxV->flag == 2){
                 //dont print, its repeated
-            }
-            else if(auxV->flag == 1){
+            
+            }else if(auxV->flag == 1){
                 printf("%s\t\t%s\t%s\n", auxV->name, auxV->type, "param");
-            }
-            else{
+            
+            }else{
                 printf("%s\t\t%s\n", auxV->name, auxV->type);
             }
 
@@ -323,19 +323,20 @@ void create_semantic_table(node *atual){
 
         while(atual != NULL){ //Fazemos primeiro a tabela global toda
             if(strcmp(atual->Type, "FieldDecl")==0){
-                aux1 = atual->child; //TYPE
-                aux2 = aux1->brother; //ID
+                aux1 = atual->child; //TYPE - int/bool/double
+                aux2 = aux1->brother; //ID - NOME
                 auxVar = create_var(aux2->value, changeType(aux1->Type));
+
                 if(search_type_var(global_table, NULL, aux2->value) != NULL){
                     nErrorsSemantic = 1;
                     printf("Line %d, col %d: Symbol %s already defined\n", aux2->line, aux2->column, aux2->value);
                     clearVars(auxVar);
-                }
-                else{
+                
+                }else{
                     if(global_table->vars == NULL){
                         global_table->vars = auxVar;
-                    }
-                    else{
+                    
+                    }else{
                         add_var(global_table->vars, auxVar);
                     }
                 }
@@ -366,8 +367,8 @@ void create_semantic_table(node *atual){
 
                                 if(auxVar->paramTypes == NULL){
                                     auxVar->paramTypes = auxParam;
-                                }
-                                else{
+                                
+                                }else{
                                     add_param(auxVar->paramTypes, auxParam);
                                 }
                             }
@@ -390,12 +391,12 @@ void create_semantic_table(node *atual){
                             printf(") already defined\n");
                             aux3->to_anote = 0;
                             clearVars(auxVar);
-                        }
-                        else{
+                        
+                        }else{
                             if(global_table->vars == NULL){
                                 global_table->vars = auxVar;
-                            }
-                            else{
+                            
+                            }else{
                                 add_var(global_table->vars, auxVar);
                             }
                         }
@@ -441,8 +442,8 @@ void create_semantic_table(node *atual){
 
                                 if(auxVar->paramTypes == NULL){
                                     auxVar->paramTypes = auxParam;
-                                }
-                                else{
+                                
+                                }else{
                                     add_param(auxVar->paramTypes, auxParam);
                                 }
 
@@ -451,8 +452,8 @@ void create_semantic_table(node *atual){
                                 auxVarLocal = create_var(aux6->value, changeType(aux5->child->Type));
                                 if(aux!=NULL){
                                     auxVarLocal->flag = 2; //DONT PRINT, ITS REPEATED
-                                }
-                                else{
+                                
+                                }else{
                                     auxVarLocal->flag = 1; //ITS VAR
                                 }
                                 auxTable->params = auxVar->paramTypes;
@@ -471,14 +472,14 @@ void create_semantic_table(node *atual){
                                 if(search_type_var(NULL, auxTable, aux4->value) != NULL){
                                     nErrorsSemantic = 1;
                                     printf("Line %d, col %d: Symbol %s already defined\n", aux4->line, aux4->column, aux4->value);
-                                }
-                                else{
+                                
+                                }else{
                                     auxVar = create_var(aux4->value, changeType(aux3->Type));
                                     auxVar->flag = 0;
                                     add_var(auxTable->vars, auxVar); //TO LOCAL TABLE
                                 }
-                            }
-                            else{
+                            
+                            }else{
                                 if(!(strcmp(aux2->Type, "NULL") == 0)){
                                     anote_ast(global_table, auxTable, aux2);
                                 }
@@ -494,8 +495,8 @@ void create_semantic_table(node *atual){
                 if(error != 1){
                     if(local_table == NULL){
                         local_table = auxTable;
-                    }
-                    else{
+                    
+                    }else{
                         add_to_local_table(local_table, auxTable); //ADD TO LOCAL TABLE
                     }  
                 }
@@ -595,19 +596,19 @@ void anote_ast(sym_table *table_global, sym_table *table_local, node *atual){
 
     if(strcmp(atual->Type, "NULL") == 0){
         return;
-    }
-    else if(strcmp(atual->Type, "Id") == 0){
+    
+    }else if(strcmp(atual->Type, "Id") == 0){
         aux = search_type_var(table_global, table_local, atual->value);
         if(aux != NULL){
             atual->anoted = aux;
-        }
-        else{
+        
+        }else{
             nErrorsSemantic = 1;
             printf("Line %d, col %d: Cannot find symbol %s\n", atual->line, atual->column, atual->value);
             atual->anoted = "undef";
         }
-    }
-    else if(strcmp(atual->Type, "If") == 0){
+    
+    }else if(strcmp(atual->Type, "If") == 0){
         aux1 = atual->child;
         anote_ast(table_global, table_local, aux1);
         aux1 = aux1->brother;
@@ -650,28 +651,8 @@ void anote_ast(sym_table *table_global, sym_table *table_local, node *atual){
             anote_ast(table_global, table_local, aux1);
             aux1 = aux1->brother;
         }
-    }
-    else if(strcmp(atual->Type, "DoWhile") == 0){
-        aux1 = atual->child;
-        while(aux1 != NULL){
-            anote_ast(table_global, table_local, aux1);
-            if(strcmp(aux1->Type, "NULL")){
-                ant = aux1;
-            }
-            aux1 = aux1->brother;
-        }
-
-        aux2 = ant;
-        if(strcmp(aux2->anoted, "boolean")){
-            nErrorsSemantic = 1;
-            printf("Line %d, col %d: Incompatible type %s in do statement\n", aux2->line, aux2->column, aux2->anoted);
-            atual->anoted = "undef";
-        }
-        else{
-            atual->anoted = "boolean";
-        }
-    }
-    else if(strcmp(atual->Type, "Print") == 0){
+    
+    }else if(strcmp(atual->Type, "Print") == 0){
         aux1 = atual->child;
         while(aux1 != NULL){
             anote_ast(table_global, table_local, aux1);
@@ -1055,17 +1036,6 @@ void anote_ast(sym_table *table_global, sym_table *table_local, node *atual){
         atual->anoted = "boolean";
     }
     else if(strcmp(atual->Type, "DecLit") == 0){
-        /*char *aux2 = (char*)strdup(atual->value);
-        char *pr, *pw;
-
-        pr = atual->value;
-        pw = atual->value;
-        while (*pr) {
-            *pw = *pr++;
-            pw += (*pw != '_');
-        }
-        *pw = '\0';*/
-
         long l = strtol(atual->value,NULL,10);
         if(l>=0 && l<=INT_MAX){
             atual->anoted = "int";
@@ -1075,11 +1045,7 @@ void anote_ast(sym_table *table_global, sym_table *table_local, node *atual){
             printf("Line %d, col %d: Number %s out of bounds\n", atual->line, atual->column, atual->value);
         }
 
-        atual->anoted = "int";
-        
-        /*free(atual->value);
-        atual->value = NULL;
-        atual->value = aux2;*/
+        atual->anoted = "int";       
     }
     else if(strcmp(atual->Type, "RealLit") == 0){
         char *value = atual->value;
@@ -1130,8 +1096,8 @@ int itsExpression(char *Type){
         || strcmp(Type, "RealLit") == 0 || strcmp(Type, "StrLit") == 0 || strcmp(Type, "Gt") == 0
         || strcmp(Type, "Leq") == 0){
         return 1;
-    }
-    else{
+    
+    }else{
         return 0;
     }
 }
@@ -1181,9 +1147,6 @@ void printAnotedAST(node *current, int n){
                 printf("%s",current->Type);
             }
         }
-
-        //printf(" %d %d", current->line, current->column);
-
         printf("\n");
     }
     

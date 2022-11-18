@@ -48,6 +48,7 @@ node* criaNode(char* Type, char *value, int line, int column){
     newNode->column = column;
     newNode->child = NULL;
     newNode->brother = NULL;
+
     return newNode;
 }
 
