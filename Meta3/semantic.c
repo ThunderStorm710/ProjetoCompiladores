@@ -662,7 +662,7 @@ void anote_ast(sym_table *table_global, sym_table *table_local, node *atual){
         aux2 = atual->child;
         if(strcmp(aux2->anoted, "undef") == 0 || strcmp(aux2->anoted, "String[]") == 0 || strcmp(aux2->anoted, "void") == 0){
             nErrorsSemantic = 1;
-            printf("Line %d, col %d: Incompatible type %s in System.out.println statement\n", aux2->line, aux2->column, aux2->anoted);
+            printf("Line %d, col %d: Incompatible type %s in System.out.print statement\n", aux2->line, aux2->column, aux2->anoted);
         }
     }
     else if(strcmp(atual->Type, "Return") == 0){
