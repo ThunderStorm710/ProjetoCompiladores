@@ -614,7 +614,7 @@ void anote_ast(sym_table *table_global, sym_table *table_local, node *atual){
         aux1 = aux1->brother;
         
         aux2 = atual->child;
-        if(strcmp(aux2->anoted, "boolean")){
+        if(aux2->anoted != NULL && strcmp(aux2->anoted, "boolean")){ //MUDAR OS <= E TIRAR ESTE NULL
             nErrorsSemantic = 1;
             printf("Line %d, col %d: Incompatible type %s in if statement\n", aux2->line, aux2->column, aux2->anoted);
         }
@@ -706,8 +706,6 @@ void anote_ast(sym_table *table_global, sym_table *table_local, node *atual){
             aux1 = aux1->brother;
         }
 
-        //aux2 = atual->child;
-        //atual->anoted = aux2->anoted;
         aux2 = atual->child;
         aux3 = aux2->brother;
 
@@ -845,8 +843,8 @@ void anote_ast(sym_table *table_global, sym_table *table_local, node *atual){
         }
 
         atual->anoted = "int";
-    }
-    else if(strcmp(atual->Type, "And") == 0 || strcmp(atual->Type, "Or") == 0 || strcmp(atual->Type, "Xor") == 0){
+    
+    } else if (strcmp(atual->Type, "Xor") == 0){
         aux1 = atual->child;
         while(aux1 != NULL){
             anote_ast(table_global, table_local, aux1);
@@ -856,34 +854,56 @@ void anote_ast(sym_table *table_global, sym_table *table_local, node *atual){
         aux2 = atual->child;
         aux3 = aux2->brother;
 
-        if (strcmp(aux2->anoted, "boolean") && strcmp(atual->Type, "Xor") == 0){ 
+        if (strcmp(aux2->anoted, "int") == 0 && strcmp(aux3->anoted, "int") == 0){
+            atual->anoted = "int";
+        
+        } else if (strcmp(aux2->anoted, "boolean")){ 
             
             nErrorsSemantic = 1;
             printf("Line %d, col %d: Operator ^ cannot be applied to types %s, %s\n", atual->line, atual->column, aux2->anoted, aux3->anoted);
         
-        } else if (strcmp(aux3->anoted, "boolean") && strcmp(atual->Type, "Xor") == 0){
+        } else if (strcmp(aux3->anoted, "boolean")){
 
             nErrorsSemantic = 1;
             printf("Line %d, col %d: Operator ^ cannot be applied to types %s, %s\n", atual->line, atual->column, aux2->anoted, aux3->anoted);
-          
-        }else if(strcmp(aux2->anoted, "boolean") && strcmp(atual->Type, "And") == 0){
+
+        }        
+        
+        if (strcmp(aux2->anoted, "int") == 0 && strcmp(aux3->anoted, "int") == 0){
+            atual->anoted = "int";
+        } else {
+            atual->anoted = "boolean"; //TODO MELHORAR ISTO
+        }
+        
+    }else if(strcmp(atual->Type, "And") == 0 || strcmp(atual->Type, "Or") == 0){
+        aux1 = atual->child;
+        while(aux1 != NULL){
+            anote_ast(table_global, table_local, aux1);
+            aux1 = aux1->brother;
+        }
+
+        aux2 = atual->child;
+        aux3 = aux2->brother;
+
+        if(strcmp(aux2->anoted, "boolean") && strcmp(atual->Type, "And") == 0){
             nErrorsSemantic = 1;
             printf("Line %d, col %d: Operator && cannot be applied to types %s, %s\n", atual->line, atual->column, aux2->anoted, aux3->anoted);
-        }
-        else if(strcmp(aux2->anoted, "boolean") && strcmp(atual->Type, "Or") == 0){
+        
+        }else if(strcmp(aux2->anoted, "boolean") && strcmp(atual->Type, "Or") == 0){
             nErrorsSemantic = 1;
             printf("Line %d, col %d: Operator || cannot be applied to types %s, %s\n", atual->line, atual->column, aux2->anoted, aux3->anoted);
-        }
-        else if(strcmp(aux3->anoted, "boolean") && strcmp(atual->Type, "And") == 0){
+        
+        }else if(strcmp(aux3->anoted, "boolean") && strcmp(atual->Type, "And") == 0){
             nErrorsSemantic = 1;
             printf("Line %d, col %d: Operator && cannot be applied to types %s, %s\n", atual->line, atual->column, aux2->anoted, aux3->anoted);
-        }
-        else if(strcmp(aux3->anoted, "boolean") && strcmp(atual->Type, "Or") == 0){
+        
+        }else if(strcmp(aux3->anoted, "boolean") && strcmp(atual->Type, "Or") == 0){
             nErrorsSemantic = 1;
             printf("Line %d, col %d: Operator || cannot be applied to types %s, %s\n", atual->line, atual->column, aux2->anoted, aux3->anoted);
         }
 
         atual->anoted = "boolean";
+        
     }
     else if(strcmp(atual->Type, "Eq") == 0 || strcmp(atual->Type, "Gt") == 0 || strcmp(atual->Type, "Geq") == 0
         || strcmp(atual->Type, "Leq") == 0 || strcmp(atual->Type, "Lt") == 0 || strcmp(atual->Type, "Neq") == 0){
