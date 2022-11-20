@@ -43,7 +43,10 @@ node* criaNode(char* Type, char *value, int line, int column){
     else{
         newNode->value = NULL;
     }
-
+    newNode->anoted = NULL;
+    newNode->params = NULL;
+    newNode->n_params = -1;
+    newNode->to_anote = 1;
     newNode->line = line;
     newNode->column = column;
     newNode->child = NULL;

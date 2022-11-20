@@ -662,7 +662,7 @@ void anote_ast(sym_table *table_global, sym_table *table_local, node *atual){
         aux2 = atual->child;
         if(strcmp(aux2->anoted, "undef") == 0 || strcmp(aux2->anoted, "String[]") == 0 || strcmp(aux2->anoted, "void") == 0){
             nErrorsSemantic = 1;
-            printf("Line %d, col %d: Incompatible type %s in System.out.println statement\n", aux2->line, aux2->column, aux2->anoted);
+            printf("Line %d, col %d: Incompatible type %s in System.out.print statement\n", aux2->line, aux2->column, aux2->anoted);
         }
     }
     else if(strcmp(atual->Type, "Return") == 0){
@@ -846,7 +846,7 @@ void anote_ast(sym_table *table_global, sym_table *table_local, node *atual){
 
         atual->anoted = "int";
     }
-    else if(strcmp(atual->Type, "And") == 0 || strcmp(atual->Type, "Or") == 0){
+    else if(strcmp(atual->Type, "And") == 0 || strcmp(atual->Type, "Or") == 0 || strcmp(atual->Type, "Xor") == 0){
         aux1 = atual->child;
         while(aux1 != NULL){
             anote_ast(table_global, table_local, aux1);
@@ -855,7 +855,18 @@ void anote_ast(sym_table *table_global, sym_table *table_local, node *atual){
 
         aux2 = atual->child;
         aux3 = aux2->brother;
-        if(strcmp(aux2->anoted, "boolean") && strcmp(atual->Type, "And") == 0){
+
+        if (strcmp(aux2->anoted, "boolean") && strcmp(atual->Type, "Xor") == 0){ 
+            
+            nErrorsSemantic = 1;
+            printf("Line %d, col %d: Operator ^ cannot be applied to types %s, %s\n", atual->line, atual->column, aux2->anoted, aux3->anoted);
+        
+        } else if (strcmp(aux3->anoted, "boolean") && strcmp(atual->Type, "Xor") == 0){
+
+            nErrorsSemantic = 1;
+            printf("Line %d, col %d: Operator ^ cannot be applied to types %s, %s\n", atual->line, atual->column, aux2->anoted, aux3->anoted);
+          
+        }else if(strcmp(aux2->anoted, "boolean") && strcmp(atual->Type, "And") == 0){
             nErrorsSemantic = 1;
             printf("Line %d, col %d: Operator && cannot be applied to types %s, %s\n", atual->line, atual->column, aux2->anoted, aux3->anoted);
         }
@@ -921,8 +932,48 @@ void anote_ast(sym_table *table_global, sym_table *table_local, node *atual){
             nErrorsSemantic = 1;
             printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->line, atual->column, aux, aux2->anoted, aux3->anoted);
         }
-    }
-    else if(strcmp(atual->Type, "Add") == 0 || strcmp(atual->Type, "Sub") == 0 || strcmp(atual->Type, "Mul") == 0
+    } else if (strcmp(atual->Type, "Lshift") == 0 || strcmp(atual->Type, "Rshift") == 0){
+
+        aux1 = atual->child;
+        while(aux1 != NULL){
+            anote_ast(table_global, table_local, aux1);
+            aux1 = aux1->brother;
+        }
+
+        aux2 = atual->child;
+        aux3 = aux2->brother;
+
+        if (strcmp(atual->Type, "Lshift") == 0){
+            aux = "<<";
+        } else {
+            aux = ">>";
+        }
+
+        if(strcmp(aux2->anoted, "int")==0){
+            if(strcmp(aux3->anoted, "int")==0){
+                atual->anoted = "int";
+            }else{
+                nErrorsSemantic = 1;
+                printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->line, atual->column, aux, aux2->anoted, aux3->anoted);
+                atual->anoted = "undef";
+            }
+        
+        }else if(strcmp(aux3->anoted, "int")==0){
+            if(strcmp(aux2->anoted, "int") == 0){
+                atual->anoted = "int";
+            }else{
+                nErrorsSemantic = 1;
+                printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->line, atual->column, aux, aux2->anoted, aux3->anoted);
+                atual->anoted = "undef";
+            }
+        
+        }else{
+            nErrorsSemantic = 1;
+            printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->line, atual->column, aux, aux2->anoted, aux3->anoted);
+            atual->anoted = "undef";
+        }
+
+    }else if(strcmp(atual->Type, "Add") == 0 || strcmp(atual->Type, "Sub") == 0 || strcmp(atual->Type, "Mul") == 0
         || strcmp(atual->Type, "Div") == 0 || strcmp(atual->Type, "Mod") == 0){
 
         aux1 = atual->child;
@@ -1094,7 +1145,8 @@ int itsExpression(char *Type){
         || strcmp(Type, "Length") == 0 || strcmp(Type, "Call") == 0 || strcmp(Type, "ParseArgs") == 0
         || strcmp(Type, "BoolLit") == 0 || strcmp(Type, "DecLit") == 0 || strcmp(Type, "Id") == 0 
         || strcmp(Type, "RealLit") == 0 || strcmp(Type, "StrLit") == 0 || strcmp(Type, "Gt") == 0
-        || strcmp(Type, "Leq") == 0){
+        || strcmp(Type, "Leq") == 0
+        || strcmp(Type, "Lshift") == 0 || strcmp(Type, "Rshift") == 0 || strcmp(Type, "Xor") == 0){
         return 1;
     
     }else{

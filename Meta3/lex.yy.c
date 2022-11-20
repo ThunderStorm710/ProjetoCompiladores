@@ -2409,14 +2409,34 @@ void yyfree (void * ptr )
 
 
 int main(int argc,char* argv[]){
-    if (argc == 1 || (argc == 2 && strcmp(argv[1], "-e2") == 0)){
+    if (argc == 1){
+        //imprimir igual a flag -t (excepto a arvore de sintaxe abstrata) mais arvore de sintaxe abstrata anotada
+
+        getYacc = true;
+        getPrintEronly = true;
+        global_table = NULL;
+        local_table = NULL;
+        yyparse();
+
+        if(numErrors == 0){
+            nErrorsSemantic == 0;
+            create_semantic_table(head);
+            if (nErrorsSemantic == 0){
+                print_table_global(global_table);
+                print_tables_local(local_table);
+                printAnotedAST(head, 0);
+            }
+            clearTables(global_table, local_table);
+        }
+    
+    } else if (argc == 2){
+        if (argc == 2 && strcmp(argv[1], "-e2") == 0){
         //imprimir erros do lex/flex e do yacc
         getPrint = false;
         getPrintEronly = true;
         getYacc = true;
         yyparse();
-    
-    } else if (argc == 2){
+        }
         
         if (strcmp(argv[1], "-l") == 0){
             //imprimir tokens e erros do lex/flex
@@ -2449,11 +2469,11 @@ int main(int argc,char* argv[]){
 			yyparse();
 
 			if(numErrors == 0){
-				create_semantic_table(head);
-				print_table_global(global_table);
-				print_tables_local(local_table);
-				printAnotedAST(head, 0);
-				clearTables(global_table, local_table);
+                create_semantic_table(head);
+                print_table_global(global_table);
+                print_tables_local(local_table);
+                printAnotedAST(head, 0);
+                clearTables(global_table, local_table);
 			}
 		}
     }
