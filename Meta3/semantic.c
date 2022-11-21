@@ -632,7 +632,7 @@ void anote_ast(sym_table *table_global, sym_table *table_local, node *atual){
         }
     }
     else if(strcmp(atual->Type, "While") == 0){
-        //dentro do while() só pode estar um boolit, gt, eq, get, leq, lt, neq
+        //dentro do while() só pode estar um boolit, gt, eq, get, le, lt, ne
         aux1 = atual->child;
         anote_ast(table_global, table_local, aux1);
         aux1 = aux1->brother;
@@ -905,8 +905,8 @@ void anote_ast(sym_table *table_global, sym_table *table_local, node *atual){
         atual->anoted = "boolean";
         
     }
-    else if(strcmp(atual->Type, "Eq") == 0 || strcmp(atual->Type, "Gt") == 0 || strcmp(atual->Type, "Geq") == 0
-        || strcmp(atual->Type, "Leq") == 0 || strcmp(atual->Type, "Lt") == 0 || strcmp(atual->Type, "Neq") == 0){
+    else if(strcmp(atual->Type, "Eq") == 0 || strcmp(atual->Type, "Gt") == 0 || strcmp(atual->Type, "Ge") == 0
+        || strcmp(atual->Type, "Le") == 0 || strcmp(atual->Type, "Lt") == 0 || strcmp(atual->Type, "Ne") == 0){
         
         aux1 = atual->child;
         while(aux1 != NULL){
@@ -925,20 +925,20 @@ void anote_ast(sym_table *table_global, sym_table *table_local, node *atual){
         else if(strcmp(atual->Type, "Gt") == 0){
             aux = ">";
         }
-        else if(strcmp(atual->Type, "Geq") == 0){
+        else if(strcmp(atual->Type, "Ge") == 0){
             aux = ">=";
         }
-        else if(strcmp(atual->Type, "Leq") == 0){
+        else if(strcmp(atual->Type, "Le") == 0){
             aux = "<=";
         }
         else if(strcmp(atual->Type, "Lt") == 0){
             aux = "<";
         }
-        else if(strcmp(atual->Type, "Neq") == 0){
+        else if(strcmp(atual->Type, "Ne") == 0){
             aux = "!=";
         }
 
-        if(strcmp(atual->Type, "Eq") == 0 || strcmp(atual->Type, "Neq") == 0){
+        if(strcmp(atual->Type, "Eq") == 0 || strcmp(atual->Type, "Ne") == 0){
             if(strcmp(aux2->anoted, "boolean") == 0 && strcmp(aux3->anoted, "boolean") == 0){
                 return;
             }
@@ -953,7 +953,7 @@ void anote_ast(sym_table *table_global, sym_table *table_local, node *atual){
             printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->line, atual->column, aux, aux2->anoted, aux3->anoted);
         }
     } else if (strcmp(atual->Type, "Lshift") == 0 || strcmp(atual->Type, "Rshift") == 0){
-
+        
         aux1 = atual->child;
         while(aux1 != NULL){
             anote_ast(table_global, table_local, aux1);
@@ -1158,14 +1158,14 @@ void anote_ast(sym_table *table_global, sym_table *table_local, node *atual){
 
 int itsExpression(char *Type){
     if(strcmp(Type, "Assign") == 0 || strcmp(Type, "Or") == 0 || strcmp(Type, "And") == 0
-        || strcmp(Type, "Eq") == 0 || strcmp(Type, "Neq") == 0 || strcmp(Type, "Lt") == 0
-        || strcmp(Type, "Geq") == 0 || strcmp(Type, "Add") == 0 || strcmp(Type, "Sub") == 0
+        || strcmp(Type, "Eq") == 0 || strcmp(Type, "Ne") == 0 || strcmp(Type, "Lt") == 0
+        || strcmp(Type, "Ge") == 0 || strcmp(Type, "Add") == 0 || strcmp(Type, "Sub") == 0
         || strcmp(Type, "Mul") == 0 || strcmp(Type, "Div") == 0 || strcmp(Type, "Mod") == 0
         || strcmp(Type, "Not") == 0 || strcmp(Type, "Minus") == 0 || strcmp(Type, "Plus") == 0
         || strcmp(Type, "Length") == 0 || strcmp(Type, "Call") == 0 || strcmp(Type, "ParseArgs") == 0
         || strcmp(Type, "BoolLit") == 0 || strcmp(Type, "DecLit") == 0 || strcmp(Type, "Id") == 0 
         || strcmp(Type, "RealLit") == 0 || strcmp(Type, "StrLit") == 0 || strcmp(Type, "Gt") == 0
-        || strcmp(Type, "Leq") == 0
+        || strcmp(Type, "Le") == 0
         || strcmp(Type, "Lshift") == 0 || strcmp(Type, "Rshift") == 0 || strcmp(Type, "Xor") == 0){
         return 1;
     
