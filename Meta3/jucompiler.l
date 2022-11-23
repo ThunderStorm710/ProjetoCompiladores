@@ -8,7 +8,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "Tree.h"
 #include "y.tab.h"
 #include "semantic.h"
 
@@ -189,13 +188,13 @@ int main(int argc,char* argv[]){
 
         if(numErrors == 0){
             nErrorsSemantic == 0;
-            create_semantic_table(head);
+            criarTabelaSemantica(head);
             if (nErrorsSemantic == 0){
-                print_table_global(global_table);
-                print_tables_local(local_table);
-                printAnotedAST(head, 0);
+                imprimirTabelaGlobal(global_table);
+                imprimirTabelasLocais(local_table);
+                imprimirArvoreAnotada(head, 0);
             }
-            clearTables(global_table, local_table);
+            limparTabelas(global_table, local_table);
         }
     
     } else if (argc == 2){
@@ -238,11 +237,11 @@ int main(int argc,char* argv[]){
 			yyparse();
 
 			if(numErrors == 0){
-                create_semantic_table(head);
-                print_table_global(global_table);
-                print_tables_local(local_table);
-                printAnotedAST(head, 0);
-                clearTables(global_table, local_table);
+                criarTabelaSemantica(head);
+                imprimirTabelaGlobal(global_table);
+                imprimirTabelasLocais(local_table);
+                imprimirArvoreAnotada(head, 0);
+                limparTabelas(global_table, local_table);
 			}
 		}
     }

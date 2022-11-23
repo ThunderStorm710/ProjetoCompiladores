@@ -1,3 +1,4 @@
 flex jucompiler.l
 yacc -d jucompiler.y
 cc -o jucompiler *.c
+./jucompiler -s < meta#/file.java | diff meta#/file.out
