@@ -29,8 +29,7 @@
 * G --> 45/45
 * H --> 40/40
 
-![image](https://user-images.githubusercontent.com/108558031/203440363-0d5df387-3ad1-4405-a969-1d7ae48092a0.png)
-![image](https://user-images.githubusercontent.com/108558031/203440284-f3a1a965-43ea-41d2-8c8f-a5b3aafeecf2.png)
+![image](https://user-images.githubusercontent.com/108558031/203457742-749d640d-3a8d-4f1e-b3e3-60a1035f2b89.png)
 
 
 ### Meta 4 -- Nota Final --> MOOSHAK
