@@ -190,9 +190,7 @@ int main(int argc,char* argv[]){
             errosSemantica == 0;
             criarTabelaSemantica(head);
             if (errosSemantica == 0){
-                imprimirTabelaGlobal(tabelaGlobal);
-                imprimirTabelasLocais(tabelaLocal);
-                imprimirArvoreAnotada(head, 0);
+                create_llvm(head);
             }
             limparTabelas(tabelaGlobal, tabelaLocal);
         }

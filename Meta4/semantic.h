@@ -114,3 +114,55 @@ void imprimirArvoreAnotada(node *current, int n);
 char *procurarTipoVariavelTabela(sym_table *table, char *var_name);
 
 char *procuraTipoVariavel(sym_table *table_global, sym_table *table_local, char *var_name);
+
+typedef struct _strlit_list{
+    char *valor;
+    char *type;
+    struct _strlit_list *next;
+} strlit_list;
+
+/* LLVM */
+void clearList(strlit_list *var);
+void change_strlit(char *strlit);
+void print_strlit(strlit_list *strList);
+strlit_list *create_strlit(char *valor, char *type);
+void add_strlit(strlit_list *strList, strlit_list *new);
+void declare_all_strlit(node *atual);
+void print_global_declarations(node *atual);
+void generate_llvm(node *atual);
+void create_header(node *atual);
+void create_llvm(node *atual);
+void code_llvm(node *atual);
+char *verify_its_global(char *name);
+void function_varDecl(char *type, char *name);
+void change_reallit(char *valor);
+void change_declit(char *valor);
+void function_print(node *atual);
+void function_decLit(node *atual);
+void function_boolLit(node *atual);
+void function_strLit(node *atual);
+void function_assign(node *atual);
+void function_id(node *atual);
+void function_minus(node *atual);
+void function_parseArgs(node *atual);
+void function_realLit(node *atual);
+void function_length(node *atual);
+void function_add(node *atual, int var1, int var2);
+void function_sub(node *atual, int var1, int var2);
+void function_mul(node *atual, int var1, int var2);
+void function_div(node *atual, int var1, int var2);
+void function_mod(node *atual, int var1, int var2);
+void function_not(node *atual, int var1);
+void function_and(node *atual);
+void function_or(node *atual);
+void function_eq(node *atual, int var1, int var2);
+void function_neq(node *atual, int var1, int var2);
+void function_lt(node *atual, int var1, int var2);
+void function_gt(node *atual, int var1, int var2);
+void function_leq(node *atual, int var1, int var2);
+void function_geq(node *atual, int var1, int var2);
+void function_if(node *atual);
+void function_while(node *atual);
+void function_dowhile(node *atual);
+void function_return(node *atual);
+void function_call(node *atual);
