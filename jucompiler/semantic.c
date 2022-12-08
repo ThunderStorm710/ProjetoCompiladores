@@ -316,7 +316,7 @@ void criarTabelaSemantica(node *atual) {
     if (strcmp(atual->Type, "Program") == 0) { //Fazemos primeiro a tabela global toda
         aux1 = atual->child; //ID
 
-        tabelaGlobal = criarTabela(aux1->valor, "Class");
+        tabelaGlobal = criarTabela(aux1->value, "Class");
 
         auxProgram = aux1->brother; //FieldDecl ou MethodDecl
         atual = aux1->brother; //FieldDecl ou MethodDecl
@@ -325,11 +325,11 @@ void criarTabelaSemantica(node *atual) {
             if (strcmp(atual->Type, "FieldDecl") == 0) {
                 aux1 = atual->child; //TYPE - int/bool/double
                 aux2 = aux1->brother; //ID - NOME
-                auxVar = criarVariavel(aux2->valor, alterarTipo(aux1->Type));
+                auxVar = criarVariavel(aux2->value, alterarTipo(aux1->Type));
 
-                if (procuraTipoVariavel(tabelaGlobal, NULL, aux2->valor) != NULL) {
+                if (procuraTipoVariavel(tabelaGlobal, NULL, aux2->value) != NULL) {
                     errosSemantica = 1;
-                    printf("Line %d, col %d: Symbol %s already defined\n", aux2->linha, aux2->coluna, aux2->valor);
+                    printf("Line %d, col %d: Symbol %s already defined\n", aux2->line, aux2->column, aux2->value);
                     limparVariaveis(auxVar);
 
                 } else {
@@ -349,7 +349,7 @@ void criarTabelaSemantica(node *atual) {
                         aux2 = aux1->child; //TYPE
                         aux3 = aux2->brother; //ID
 
-                        auxVar = criarVariavel(aux3->valor, alterarTipo(aux2->Type)); //ADD TO GLOBAL
+                        auxVar = criarVariavel(aux3->value, alterarTipo(aux2->Type)); //ADD TO GLOBAL
 
                         aux4 = aux3->brother; //MethodParams
                         aux5 = aux4->child; //ParamDecl ou nada
@@ -358,13 +358,13 @@ void criarTabelaSemantica(node *atual) {
                                 count_params++;
                                 //add to auxVar to tabelaGlobal
                                 auxParam = CriarParametroTipo(alterarTipo(aux5->child->Type),
-                                                             (aux5->child)->brother->valor);
+                                                             (aux5->child)->brother->value);
 
-                                aux = procurarVariavel(auxVar->parametroTipos, (aux5->child)->brother->valor);
+                                aux = procurarVariavel(auxVar->parametroTipos, (aux5->child)->brother->value);
                                 if (aux != NULL) {
                                     errosSemantica = 1;
-                                    printf("Line %d, col %d: Symbol %s already defined\n", (aux5->child)->brother->linha,
-                                           (aux5->child)->brother->coluna, (aux5->child)->brother->valor);
+                                    printf("Line %d, col %d: Symbol %s already defined\n", (aux5->child)->brother->line,
+                                           (aux5->child)->brother->column, (aux5->child)->brother->value);
                                 }
 
                                 if (auxVar->parametroTipos == NULL) {
@@ -379,9 +379,9 @@ void criarTabelaSemantica(node *atual) {
 
                         auxVar->function = 1; //ITS FUNCTION
                         auxVar->numeroParametros = count_params;
-                        if (procurarFuncao(tabelaGlobal, auxVar->parametroTipos, count_params, aux3->valor) == 1) {
+                        if (procurarFuncao(tabelaGlobal, auxVar->parametroTipos, count_params, aux3->value) == 1) {
                             errosSemantica = 1;
-                            printf("Line %d, col %d: Symbol %s(", aux3->linha, aux3->coluna, aux3->valor);
+                            printf("Line %d, col %d: Symbol %s(", aux3->line, aux3->column, aux3->value);
                             auxParamPrint = auxVar->parametroTipos;
                             while (auxParamPrint != NULL) {
                                 printf("%s", auxParamPrint->type);
@@ -427,7 +427,7 @@ void criarTabelaSemantica(node *atual) {
                             break;
                         }
 
-                        auxTable = criarTabela(aux3->valor, "Method");
+                        auxTable = criarTabela(aux3->value, "Method");
 
                         auxVar = criarVariavel("return", alterarTipo(aux2->Type)); //CREATE VAR TYPE
                         auxVar->flag = 0;
@@ -439,9 +439,9 @@ void criarTabelaSemantica(node *atual) {
                             if (strcmp(aux5->Type, "NULL") != 0) {
                                 //add to auxVar to tabelaGlobal
                                 auxParam = CriarParametroTipo(alterarTipo(aux5->child->Type),
-                                                             (aux5->child)->brother->valor);
+                                                             (aux5->child)->brother->value);
 
-                                aux = procurarVariavel(auxVar->parametroTipos, (aux5->child)->brother->valor);
+                                aux = procurarVariavel(auxVar->parametroTipos, (aux5->child)->brother->value);
 
                                 if (auxVar->parametroTipos == NULL) {
                                     auxVar->parametroTipos = auxParam;
@@ -452,7 +452,7 @@ void criarTabelaSemantica(node *atual) {
 
                                 //add to tabelaLocal
                                 aux6 = (aux5->child)->brother; //ID OF ParamDecl
-                                auxVarLocal = criarVariavel(aux6->valor, alterarTipo(aux5->child->Type));
+                                auxVarLocal = criarVariavel(aux6->value, alterarTipo(aux5->child->Type));
                                 if (aux != NULL) {
                                     auxVarLocal->flag = 2; //DONT PRINT, ITS REPEATED
 
@@ -472,13 +472,13 @@ void criarTabelaSemantica(node *atual) {
                                 aux3 = aux2->child;
                                 aux4 = aux3->brother;
 
-                                if (procuraTipoVariavel(NULL, auxTable, aux4->valor) != NULL) {
+                                if (procuraTipoVariavel(NULL, auxTable, aux4->value) != NULL) {
                                     errosSemantica = 1;
-                                    printf("Line %d, col %d: Symbol %s already defined\n", aux4->linha, aux4->coluna,
-                                           aux4->valor);
+                                    printf("Line %d, col %d: Symbol %s already defined\n", aux4->line, aux4->column,
+                                           aux4->value);
 
                                 } else {
-                                    auxVar = criarVariavel(aux4->valor, alterarTipo(aux3->Type));
+                                    auxVar = criarVariavel(aux4->value, alterarTipo(aux3->Type));
                                     auxVar->flag = 0;
                                     adicionarVariavel(auxTable->vars, auxVar); //TO LOCAL TABLE
                                 }
@@ -602,14 +602,14 @@ void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) 
         return;
 
     } else if (strcmp(atual->Type, "Id") == 0) {
-        aux = procuraTipoVariavel(table_global, table_local, atual->valor);
+        aux = procuraTipoVariavel(table_global, table_local, atual->value);
         if (aux != NULL) {
-            atual->anotacao = aux;
+            atual->anoted = aux;
 
         } else {
             errosSemantica = 1;
-            printf("Line %d, col %d: Cannot find symbol %s\n", atual->linha, atual->coluna, atual->valor);
-            atual->anotacao = "undef";
+            printf("Line %d, col %d: Cannot find symbol %s\n", atual->line, atual->column, atual->value);
+            atual->anoted = "undef";
         }
 
     } else if (strcmp(atual->Type, "If") == 0) {
@@ -618,9 +618,9 @@ void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) 
         aux1 = aux1->brother;
 
         aux2 = atual->child;
-        if (aux2->anotacao != NULL && strcmp(aux2->anotacao, "boolean")) { //MUDAR OS <= E TIRAR ESTE NULL
+        if (aux2->anoted != NULL && strcmp(aux2->anoted, "boolean")) { //MUDAR OS <= E TIRAR ESTE NULL
             errosSemantica = 1;
-            printf("Line %d, col %d: Incompatible type %s in if statement\n", aux2->linha, aux2->coluna, aux2->anotacao);
+            printf("Line %d, col %d: Incompatible type %s in if statement\n", aux2->line, aux2->column, aux2->anoted);
         }
 
         while (aux1 != NULL) {
@@ -640,13 +640,13 @@ void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) 
         aux1 = aux1->brother;
 
         aux2 = atual->child;
-        if (strcmp(aux2->anotacao, "boolean")) {
+        if (strcmp(aux2->anoted, "boolean")) {
             errosSemantica = 1;
-            printf("Line %d, col %d: Incompatible type %s in while statement\n", aux2->linha, aux2->coluna,
-                   aux2->anotacao);
-            atual->anotacao = "undef";
+            printf("Line %d, col %d: Incompatible type %s in while statement\n", aux2->line, aux2->column,
+                   aux2->anoted);
+            atual->anoted = "undef";
         } else {
-            atual->anotacao = "boolean";
+            atual->anoted = "boolean";
         }
 
         while (aux1 != NULL) {
@@ -662,11 +662,11 @@ void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) 
         }
 
         aux2 = atual->child;
-        if (strcmp(aux2->anotacao, "undef") == 0 || strcmp(aux2->anotacao, "String[]") == 0 ||
-            strcmp(aux2->anotacao, "void") == 0) {
+        if (strcmp(aux2->anoted, "undef") == 0 || strcmp(aux2->anoted, "String[]") == 0 ||
+            strcmp(aux2->anoted, "void") == 0) {
             errosSemantica = 1;
-            printf("Line %d, col %d: Incompatible type %s in System.out.print statement\n", aux2->linha, aux2->coluna,
-                   aux2->anotacao);
+            printf("Line %d, col %d: Incompatible type %s in System.out.print statement\n", aux2->line, aux2->column,
+                   aux2->anoted);
         }
     } else if (strcmp(atual->Type, "Return") == 0) {
         aux1 = atual->child;
@@ -679,25 +679,25 @@ void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) 
         if (aux2 != NULL) {
             if (strcmp(table_local->vars->type, "void") == 0) {
                 errosSemantica = 1;
-                printf("Line %d, col %d: Incompatible type %s in return statement\n", aux2->linha, aux2->coluna,
-                       aux2->anotacao);
-            } else if (strcmp(table_local->vars->type, aux2->anotacao) == 0) {
+                printf("Line %d, col %d: Incompatible type %s in return statement\n", aux2->line, aux2->column,
+                       aux2->anoted);
+            } else if (strcmp(table_local->vars->type, aux2->anoted) == 0) {
                 return;
             } else if (strcmp(table_local->vars->type, "double") == 0) {
-                if ((strcmp(aux2->anotacao, "int") && strcmp(aux2->anotacao, "double"))) {
+                if ((strcmp(aux2->anoted, "int") && strcmp(aux2->anoted, "double"))) {
                     errosSemantica = 1;
-                    printf("Line %d, col %d: Incompatible type %s in return statement\n", aux2->linha, aux2->coluna,
-                           aux2->anotacao);
+                    printf("Line %d, col %d: Incompatible type %s in return statement\n", aux2->line, aux2->column,
+                           aux2->anoted);
                 }
             } else {
                 errosSemantica = 1;
-                printf("Line %d, col %d: Incompatible type %s in return statement\n", aux2->linha, aux2->coluna,
-                       aux2->anotacao);
+                printf("Line %d, col %d: Incompatible type %s in return statement\n", aux2->line, aux2->column,
+                       aux2->anoted);
             }
         } else {
             if (strcmp(table_local->vars->type, "void")) {
                 errosSemantica = 1;
-                printf("Line %d, col %d: Incompatible type void in return statement\n", atual->linha, atual->coluna);
+                printf("Line %d, col %d: Incompatible type void in return statement\n", atual->line, atual->column);
             }
         }
     } else if (strcmp(atual->Type, "Assign") == 0) {
@@ -710,17 +710,17 @@ void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) 
         aux2 = atual->child;
         aux3 = aux2->brother;
 
-        atual->anotacao = aux2->anotacao;
+        atual->anoted = aux2->anoted;
 
-        if (strcmp(aux2->anotacao, aux3->anotacao) == 0 && strcmp(aux2->anotacao, "undef") &&
-            strcmp(aux2->anotacao, "String[]")) {
+        if (strcmp(aux2->anoted, aux3->anoted) == 0 && strcmp(aux2->anoted, "undef") &&
+            strcmp(aux2->anoted, "String[]")) {
             return;
-        } else if (strcmp(aux2->anotacao, "double") == 0 && strcmp(aux3->anotacao, "int") == 0) {
+        } else if (strcmp(aux2->anoted, "double") == 0 && strcmp(aux3->anoted, "int") == 0) {
             return;
         } else {
             errosSemantica = 1;
-            printf("Line %d, col %d: Operator = cannot be applied to types %s, %s\n", atual->linha, atual->coluna,
-                   aux2->anotacao, aux3->anotacao);
+            printf("Line %d, col %d: Operator = cannot be applied to types %s, %s\n", atual->line, atual->column,
+                   aux2->anoted, aux3->anoted);
         }
     } else if (strcmp(atual->Type, "Call") == 0) {
         count_params = 0;
@@ -741,15 +741,15 @@ void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) 
             count_equals = 0;
             count_all_equals = 0;
             if (aux_vars->function == 1 && aux_vars->numeroParametros == count_params &&
-                strcmp(aux_vars->name, atual->child->valor) == 0) {
+                strcmp(aux_vars->name, atual->child->value) == 0) {
                 aux_params = aux_vars->parametroTipos;
                 aux1 = (atual->child)->brother;
                 while (aux1 != NULL) {
                     if (strcmp(aux1->Type, "NULL")) {
-                        if (strcmp(aux_params->type, aux1->anotacao) == 0) {
+                        if (strcmp(aux_params->type, aux1->anoted) == 0) {
                             count_all_equals++;
                             count_equals++;
-                        } else if (strcmp(aux1->anotacao, "int") == 0 && strcmp(aux_params->type, "double") == 0) {
+                        } else if (strcmp(aux1->anoted, "int") == 0 && strcmp(aux_params->type, "double") == 0) {
                             count_equals++;
                         } else {
                             break;
@@ -779,16 +779,16 @@ void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) 
             } else {
                 atual->child->params = final_params;
             }
-            atual->anotacao = aux;
+            atual->anoted = aux;
         } else if (find_function > 1) {
             errosSemantica = 1;
 
-            printf("Line %d, col %d: Reference to method %s(", atual->child->linha, atual->child->coluna,
-                   atual->child->valor);
+            printf("Line %d, col %d: Reference to method %s(", atual->child->line, atual->child->column,
+                   atual->child->value);
             aux1 = (atual->child)->brother;
             while (aux1 != NULL) {
                 if (strcmp(aux1->Type, "NULL")) {
-                    printf("%s", aux1->anotacao);
+                    printf("%s", aux1->anoted);
                     if (aux1->brother != NULL) {
                         printf(",");
                     }
@@ -796,21 +796,21 @@ void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) 
                 aux1 = aux1->brother;
             }
             printf(") is ambiguous\n");
-            atual->anotacao = "undef";
-            atual->child->anotacao = "undef";
+            atual->anoted = "undef";
+            atual->child->anoted = "undef";
         } else {
-            atual->child->anotacao = "undef";
+            atual->child->anoted = "undef";
             atual->child->params = NULL;
-            atual->anotacao = "undef";
+            atual->anoted = "undef";
 
             errosSemantica = 1;
 
-            printf("Line %d, col %d: Cannot find symbol %s(", atual->child->linha, atual->child->coluna,
-                   atual->child->valor);
+            printf("Line %d, col %d: Cannot find symbol %s(", atual->child->line, atual->child->column,
+                   atual->child->value);
             aux1 = (atual->child)->brother;
             while (aux1 != NULL) {
                 if (strcmp(aux1->Type, "NULL")) {
-                    printf("%s", aux1->anotacao);
+                    printf("%s", aux1->anoted);
                     if (count_params != 1) {
                         printf(",");
                     }
@@ -829,17 +829,17 @@ void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) 
 
         aux2 = atual->child;
         aux3 = aux2->brother;
-        if (strcmp(aux2->anotacao, "String[]")) {
+        if (strcmp(aux2->anoted, "String[]")) {
             errosSemantica = 1;
-            printf("Line %d, col %d: Operator Integer.parseInt cannot be applied to types %s, %s\n", atual->linha,
-                   atual->coluna, aux2->anotacao, aux3->anotacao);
-        } else if (strcmp(aux3->anotacao, "int")) {
+            printf("Line %d, col %d: Operator Integer.parseInt cannot be applied to types %s, %s\n", atual->line,
+                   atual->column, aux2->anoted, aux3->anoted);
+        } else if (strcmp(aux3->anoted, "int")) {
             errosSemantica = 1;
-            printf("Line %d, col %d: Operator Integer.parseInt cannot be applied to types %s, %s\n", atual->linha,
-                   atual->coluna, aux2->anotacao, aux3->anotacao);
+            printf("Line %d, col %d: Operator Integer.parseInt cannot be applied to types %s, %s\n", atual->line,
+                   atual->column, aux2->anoted, aux3->anoted);
         }
 
-        atual->anotacao = "int";
+        atual->anoted = "int";
 
     } else if (strcmp(atual->Type, "Xor") == 0) {
         aux1 = atual->child;
@@ -851,27 +851,27 @@ void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) 
         aux2 = atual->child;
         aux3 = aux2->brother;
 
-        if (strcmp(aux2->anotacao, "int") == 0 && strcmp(aux3->anotacao, "int") == 0) {
-            atual->anotacao = "int";
+        if (strcmp(aux2->anoted, "int") == 0 && strcmp(aux3->anoted, "int") == 0) {
+            atual->anoted = "int";
 
-        } else if (strcmp(aux2->anotacao, "boolean")) {
-
-            errosSemantica = 1;
-            printf("Line %d, col %d: Operator ^ cannot be applied to types %s, %s\n", atual->linha, atual->coluna,
-                   aux2->anotacao, aux3->anotacao);
-
-        } else if (strcmp(aux3->anotacao, "boolean")) {
+        } else if (strcmp(aux2->anoted, "boolean")) {
 
             errosSemantica = 1;
-            printf("Line %d, col %d: Operator ^ cannot be applied to types %s, %s\n", atual->linha, atual->coluna,
-                   aux2->anotacao, aux3->anotacao);
+            printf("Line %d, col %d: Operator ^ cannot be applied to types %s, %s\n", atual->line, atual->column,
+                   aux2->anoted, aux3->anoted);
+
+        } else if (strcmp(aux3->anoted, "boolean")) {
+
+            errosSemantica = 1;
+            printf("Line %d, col %d: Operator ^ cannot be applied to types %s, %s\n", atual->line, atual->column,
+                   aux2->anoted, aux3->anoted);
 
         }
 
-        if (strcmp(aux2->anotacao, "int") == 0 && strcmp(aux3->anotacao, "int") == 0) {
-            atual->anotacao = "int";
+        if (strcmp(aux2->anoted, "int") == 0 && strcmp(aux3->anoted, "int") == 0) {
+            atual->anoted = "int";
         } else {
-            atual->anotacao = "boolean"; //TODO MELHORAR ISTO
+            atual->anoted = "boolean"; //TODO MELHORAR ISTO
         }
 
     } else if (strcmp(atual->Type, "And") == 0 || strcmp(atual->Type, "Or") == 0) {
@@ -884,28 +884,28 @@ void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) 
         aux2 = atual->child;
         aux3 = aux2->brother;
 
-        if (strcmp(aux2->anotacao, "boolean") && strcmp(atual->Type, "And") == 0) {
+        if (strcmp(aux2->anoted, "boolean") && strcmp(atual->Type, "And") == 0) {
             errosSemantica = 1;
-            printf("Line %d, col %d: Operator && cannot be applied to types %s, %s\n", atual->linha, atual->coluna,
-                   aux2->anotacao, aux3->anotacao);
+            printf("Line %d, col %d: Operator && cannot be applied to types %s, %s\n", atual->line, atual->column,
+                   aux2->anoted, aux3->anoted);
 
-        } else if (strcmp(aux2->anotacao, "boolean") && strcmp(atual->Type, "Or") == 0) {
+        } else if (strcmp(aux2->anoted, "boolean") && strcmp(atual->Type, "Or") == 0) {
             errosSemantica = 1;
-            printf("Line %d, col %d: Operator || cannot be applied to types %s, %s\n", atual->linha, atual->coluna,
-                   aux2->anotacao, aux3->anotacao);
+            printf("Line %d, col %d: Operator || cannot be applied to types %s, %s\n", atual->line, atual->column,
+                   aux2->anoted, aux3->anoted);
 
-        } else if (strcmp(aux3->anotacao, "boolean") && strcmp(atual->Type, "And") == 0) {
+        } else if (strcmp(aux3->anoted, "boolean") && strcmp(atual->Type, "And") == 0) {
             errosSemantica = 1;
-            printf("Line %d, col %d: Operator && cannot be applied to types %s, %s\n", atual->linha, atual->coluna,
-                   aux2->anotacao, aux3->anotacao);
+            printf("Line %d, col %d: Operator && cannot be applied to types %s, %s\n", atual->line, atual->column,
+                   aux2->anoted, aux3->anoted);
 
-        } else if (strcmp(aux3->anotacao, "boolean") && strcmp(atual->Type, "Or") == 0) {
+        } else if (strcmp(aux3->anoted, "boolean") && strcmp(atual->Type, "Or") == 0) {
             errosSemantica = 1;
-            printf("Line %d, col %d: Operator || cannot be applied to types %s, %s\n", atual->linha, atual->coluna,
-                   aux2->anotacao, aux3->anotacao);
+            printf("Line %d, col %d: Operator || cannot be applied to types %s, %s\n", atual->line, atual->column,
+                   aux2->anoted, aux3->anoted);
         }
 
-        atual->anotacao = "boolean";
+        atual->anoted = "boolean";
 
     } else if (strcmp(atual->Type, "Eq") == 0 || strcmp(atual->Type, "Gt") == 0 || strcmp(atual->Type, "Ge") == 0
                || strcmp(atual->Type, "Le") == 0 || strcmp(atual->Type, "Lt") == 0 || strcmp(atual->Type, "Ne") == 0) {
@@ -919,7 +919,7 @@ void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) 
         aux2 = atual->child;
         aux3 = aux2->brother;
 
-        atual->anotacao = "boolean";
+        atual->anoted = "boolean";
 
         if (strcmp(atual->Type, "Eq") == 0) {
             aux = "==";
@@ -936,19 +936,19 @@ void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) 
         }
 
         if (strcmp(atual->Type, "Eq") == 0 || strcmp(atual->Type, "Ne") == 0) {
-            if (strcmp(aux2->anotacao, "boolean") == 0 && strcmp(aux3->anotacao, "boolean") == 0) {
+            if (strcmp(aux2->anoted, "boolean") == 0 && strcmp(aux3->anoted, "boolean") == 0) {
                 return;
             }
         }
 
-        if (strcmp(aux2->anotacao, "int") && strcmp(aux2->anotacao, "double")) {
+        if (strcmp(aux2->anoted, "int") && strcmp(aux2->anoted, "double")) {
             errosSemantica = 1;
-            printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->linha, atual->coluna, aux,
-                   aux2->anotacao, aux3->anotacao);
-        } else if (strcmp(aux3->anotacao, "double") && strcmp(aux3->anotacao, "int")) {
+            printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->line, atual->column, aux,
+                   aux2->anoted, aux3->anoted);
+        } else if (strcmp(aux3->anoted, "double") && strcmp(aux3->anoted, "int")) {
             errosSemantica = 1;
-            printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->linha, atual->coluna, aux,
-                   aux2->anotacao, aux3->anotacao);
+            printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->line, atual->column, aux,
+                   aux2->anoted, aux3->anoted);
         }
     } else if (strcmp(atual->Type, "Lshift") == 0 || strcmp(atual->Type, "Rshift") == 0) {
 
@@ -967,31 +967,31 @@ void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) 
             aux = ">>";
         }
 
-        if (strcmp(aux2->anotacao, "int") == 0) {
-            if (strcmp(aux3->anotacao, "int") == 0) {
-                atual->anotacao = "int";
+        if (strcmp(aux2->anoted, "int") == 0) {
+            if (strcmp(aux3->anoted, "int") == 0) {
+                atual->anoted = "int";
             } else {
                 errosSemantica = 1;
-                printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->linha, atual->coluna,
-                       aux, aux2->anotacao, aux3->anotacao);
-                atual->anotacao = "undef";
+                printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->line, atual->column,
+                       aux, aux2->anoted, aux3->anoted);
+                atual->anoted = "undef";
             }
 
-        } else if (strcmp(aux3->anotacao, "int") == 0) {
-            if (strcmp(aux2->anotacao, "int") == 0) {
-                atual->anotacao = "int";
+        } else if (strcmp(aux3->anoted, "int") == 0) {
+            if (strcmp(aux2->anoted, "int") == 0) {
+                atual->anoted = "int";
             } else {
                 errosSemantica = 1;
-                printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->linha, atual->coluna,
-                       aux, aux2->anotacao, aux3->anotacao);
-                atual->anotacao = "undef";
+                printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->line, atual->column,
+                       aux, aux2->anoted, aux3->anoted);
+                atual->anoted = "undef";
             }
 
         } else {
             errosSemantica = 1;
-            printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->linha, atual->coluna, aux,
-                   aux2->anotacao, aux3->anotacao);
-            atual->anotacao = "undef";
+            printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->line, atual->column, aux,
+                   aux2->anoted, aux3->anoted);
+            atual->anoted = "undef";
         }
 
     } else if (strcmp(atual->Type, "Add") == 0 || strcmp(atual->Type, "Sub") == 0 || strcmp(atual->Type, "Mul") == 0
@@ -1018,31 +1018,31 @@ void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) 
             aux = "%";
         }
 
-        if (strcmp(aux2->anotacao, "int") == 0) {
-            if (strcmp(aux3->anotacao, "int") == 0) {
-                atual->anotacao = "int";
-            } else if (strcmp(aux3->anotacao, "double") == 0) {
-                atual->anotacao = "double";
+        if (strcmp(aux2->anoted, "int") == 0) {
+            if (strcmp(aux3->anoted, "int") == 0) {
+                atual->anoted = "int";
+            } else if (strcmp(aux3->anoted, "double") == 0) {
+                atual->anoted = "double";
             } else {
                 errosSemantica = 1;
-                printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->linha, atual->coluna,
-                       aux, aux2->anotacao, aux3->anotacao);
-                atual->anotacao = "undef";
+                printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->line, atual->column,
+                       aux, aux2->anoted, aux3->anoted);
+                atual->anoted = "undef";
             }
-        } else if (strcmp(aux2->anotacao, "double") == 0) {
-            if (strcmp(aux3->anotacao, "int") && strcmp(aux3->anotacao, "double")) {
+        } else if (strcmp(aux2->anoted, "double") == 0) {
+            if (strcmp(aux3->anoted, "int") && strcmp(aux3->anoted, "double")) {
                 errosSemantica = 1;
-                printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->linha, atual->coluna,
-                       aux, aux2->anotacao, aux3->anotacao);
-                atual->anotacao = "undef";
+                printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->line, atual->column,
+                       aux, aux2->anoted, aux3->anoted);
+                atual->anoted = "undef";
             } else {
-                atual->anotacao = "double";
+                atual->anoted = "double";
             }
         } else {
             errosSemantica = 1;
-            printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->linha, atual->coluna, aux,
-                   aux2->anotacao, aux3->anotacao);
-            atual->anotacao = "undef";
+            printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->line, atual->column, aux,
+                   aux2->anoted, aux3->anoted);
+            atual->anoted = "undef";
         }
     } else if (strcmp(atual->Type, "Plus") == 0 || strcmp(atual->Type, "Minus") == 0) {
         aux1 = atual->child;
@@ -1052,19 +1052,19 @@ void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) 
         }
 
         aux2 = atual->child;
-        atual->anotacao = aux2->anotacao;
-        if (strcmp(aux2->anotacao, "int") == 0 || strcmp(aux2->anotacao, "double") == 0) {
-            atual->anotacao = aux2->anotacao;
+        atual->anoted = aux2->anoted;
+        if (strcmp(aux2->anoted, "int") == 0 || strcmp(aux2->anoted, "double") == 0) {
+            atual->anoted = aux2->anoted;
         } else {
-            atual->anotacao = "undef";
+            atual->anoted = "undef";
             if (strcmp(atual->Type, "Plus") == 0) {
                 errosSemantica = 1;
-                printf("Line %d, col %d: Operator + cannot be applied to type %s\n", atual->linha, atual->coluna,
-                       aux2->anotacao);
+                printf("Line %d, col %d: Operator + cannot be applied to type %s\n", atual->line, atual->column,
+                       aux2->anoted);
             } else {
                 errosSemantica = 1;
-                printf("Line %d, col %d: Operator - cannot be applied to type %s\n", atual->linha, atual->coluna,
-                       aux2->anotacao);
+                printf("Line %d, col %d: Operator - cannot be applied to type %s\n", atual->line, atual->column,
+                       aux2->anoted);
             }
         }
     } else if (strcmp(atual->Type, "Not") == 0) {
@@ -1075,13 +1075,13 @@ void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) 
         }
 
         aux2 = atual->child;
-        if (strcmp(aux2->anotacao, "boolean")) {
+        if (strcmp(aux2->anoted, "boolean")) {
             errosSemantica = 1;
-            printf("Line %d, col %d: Operator ! cannot be applied to type %s\n", atual->linha, atual->coluna,
-                   aux2->anotacao);
+            printf("Line %d, col %d: Operator ! cannot be applied to type %s\n", atual->line, atual->column,
+                   aux2->anoted);
         }
 
-        atual->anotacao = "boolean";
+        atual->anoted = "boolean";
     } else if (strcmp(atual->Type, "Length") == 0) {
         aux1 = atual->child;
         while (aux1 != NULL) {
@@ -1090,39 +1090,39 @@ void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) 
         }
 
         aux2 = atual->child;
-        if (strcmp(aux2->anotacao, "String[]")) {
+        if (strcmp(aux2->anoted, "String[]")) {
             errosSemantica = 1;
-            printf("Line %d, col %d: Operator .length cannot be applied to type %s\n", atual->linha, atual->coluna,
-                   aux2->anotacao);
+            printf("Line %d, col %d: Operator .length cannot be applied to type %s\n", atual->line, atual->column,
+                   aux2->anoted);
         }
-        atual->anotacao = "int";
+        atual->anoted = "int";
     } else if (strcmp(atual->Type, "BoolLit") == 0) {
-        atual->anotacao = "boolean";
+        atual->anoted = "boolean";
     } else if (strcmp(atual->Type, "DecLit") == 0) {
-        long l = strtol(atual->valor, NULL, 10);
+        long l = strtol(atual->value, NULL, 10);
         if (l >= 0 && l <= INT_MAX) {
-            atual->anotacao = "int";
+            atual->anoted = "int";
         } else {
             errosSemantica = 1;
-            printf("Line %d, col %d: Number %s out of bounds\n", atual->linha, atual->coluna, atual->valor);
+            printf("Line %d, col %d: Number %s out of bounds\n", atual->line, atual->column, atual->value);
         }
 
-        atual->anotacao = "int";
+        atual->anoted = "int";
     } else if (strcmp(atual->Type, "RealLit") == 0) {
-        char *valor = atual->valor;
+        char *value = atual->value;
         char *aux = (char *) malloc(sizeof(char) * 1024);
         int found = 0, zeros = 1, i = 0, j = 0;
 
-        while (valor[i] != '\0') {
-            if ((valor[i] >= '0' && valor[i] <= '9') || valor[i] == 'e' || valor[i] == 'E' || valor[i] == '.' ||
-                valor[i] == '-') {
-                if (valor[i] == 'e' || valor[i] == 'E') {
+        while (value[i] != '\0') {
+            if ((value[i] >= '0' && value[i] <= '9') || value[i] == 'e' || value[i] == 'E' || value[i] == '.' ||
+                value[i] == '-') {
+                if (value[i] == 'e' || value[i] == 'E') {
                     found = 1;
                 }
-                if (valor[i] != '.' && valor[i] != '0' && !found) {
+                if (value[i] != '.' && value[i] != '0' && !found) {
                     zeros = 0;
                 }
-                aux[j] = valor[i];
+                aux[j] = value[i];
                 j++;
             }
             i++;
@@ -1133,16 +1133,16 @@ void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) 
             double d = atof(aux);
             if (isinf(d) || d == 0 || d > DBL_MAX) {
                 errosSemantica = 1;
-                printf("Line %d, col %d: Number %s out of bounds\n", atual->linha, atual->coluna, atual->valor);
+                printf("Line %d, col %d: Number %s out of bounds\n", atual->line, atual->column, atual->value);
             }
         }
 
-        atual->anotacao = "double";
+        atual->anoted = "double";
 
         free(aux);
         aux = NULL;
     } else if (strcmp(atual->Type, "StrLit") == 0) {
-        atual->anotacao = "String";
+        atual->anoted = "String";
     }
 }
 
@@ -1180,9 +1180,9 @@ void imprimirArvoreAnotada(node *current, int n) {
             printf("..");
         }
 
-        if (current->valor != NULL) {
+        if (current->value != NULL) {
             if (current->numeroParametros >= 0 && isExpressao(current->Type) == 1) {
-                printf("%s(%s) - (", current->Type, current->valor);
+                printf("%s(%s) - (", current->Type, current->value);
                 aux = current->params;
                 while (aux != NULL) {
                     printf("%s", aux->type);
@@ -1192,14 +1192,14 @@ void imprimirArvoreAnotada(node *current, int n) {
                     aux = aux->next;
                 }
                 printf(")");
-            } else if (current->anotacao != NULL && isExpressao(current->Type) == 1) {
-                printf("%s(%s) - %s", current->Type, current->valor, current->anotacao);
+            } else if (current->anoted != NULL && isExpressao(current->Type) == 1) {
+                printf("%s(%s) - %s", current->Type, current->value, current->anoted);
             } else {
-                printf("%s(%s)", current->Type, current->valor);
+                printf("%s(%s)", current->Type, current->value);
             }
         } else {
-            if (current->anotacao != NULL && isExpressao(current->Type) == 1) {
-                printf("%s - %s", current->Type, current->anotacao);
+            if (current->anoted != NULL && isExpressao(current->Type) == 1) {
+                printf("%s - %s", current->Type, current->anoted);
             } else {
                 printf("%s", current->Type);
             }

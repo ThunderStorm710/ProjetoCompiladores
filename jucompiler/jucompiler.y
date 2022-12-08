@@ -183,7 +183,7 @@ VarDeclRec              :                                                   {$$ 
                         ;
 
 Statement               :   LBRACE StatementRec RBRACE                      {if(countBlock($2)>2){$$ = criaNode("Block", NULL, 0, 0); addChild($$, $2);}
-                                                                            else if(countBlock($2)==0){$$ = NULL; limparArvore($2);}
+                                                                            else if(countBlock($2)==0){$$ = NULL; astreeClean($2);}
                                                                             else{$$ = $2;}}
 
                         |   IF LPAR Expr RPAR Statement %prec IFX           {$$ = criaNode("If",NULL, $1->linha, $1->coluna); 

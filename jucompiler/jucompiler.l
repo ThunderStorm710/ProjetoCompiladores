@@ -225,7 +225,7 @@ int main(int argc,char* argv[]){
             getPrintEronly = true;
 			yyparse();
 			if(numErrors == 0){
-				imprimirArvore(head, 0);
+				astreePrint(head, 0);
 			}
 		}else if(strcmp(argv[1],"-s")==0){
             //imprimir igual a flag -t (excepto a arvore de sintaxe abstrata) mais arvore de sintaxe abstrata anotada
@@ -246,8 +246,8 @@ int main(int argc,char* argv[]){
 		}
     }
 
-    limparArvore(head);
-    //yylex_destroy();
+    astreeClean(head);
+    yylex_destroy();
 
     return 0;
 }
