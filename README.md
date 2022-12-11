@@ -32,7 +32,7 @@
 ![image](https://user-images.githubusercontent.com/108558031/203457742-749d640d-3a8d-4f1e-b3e3-60a1035f2b89.png)
 
 
-### Meta 4 -- Nota Final --> MOOSHAK
+### Meta 4 -- Nota Final --> 250 MOOSHAK
 * A --> 250/250
 * B --> 25/25
 * C --> 25/25
