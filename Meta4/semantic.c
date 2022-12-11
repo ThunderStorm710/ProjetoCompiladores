@@ -2287,7 +2287,6 @@ void function_if(node *atual){
         first = first->brother;
     }
     node *second = first->brother;
-
     while(strcmp(second->Type, "NULL") == 0){
         second = second->brother;
     }

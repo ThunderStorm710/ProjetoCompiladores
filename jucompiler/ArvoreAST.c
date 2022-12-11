@@ -32,20 +32,20 @@ void libertaToken(token *t) {
 
 /* ++++++++++ AS TREE ++++++++++ */
 
-node *criaNode(char *Type, char *value, int line, int column) {
+node *criaNode(char *Type, char *valor, int linha, int coluna) {
     node *newNode = (node *) malloc(sizeof(node));
     newNode->Type = (char *) strdup(Type);
-    if (value != NULL) {
-        newNode->value = (char *) strdup(value);
+    if (valor != NULL) {
+        newNode->valor = (char *) strdup(valor);
     } else {
-        newNode->value = NULL;
+        newNode->valor = NULL;
     }
-    newNode->anoted = NULL;
+    newNode->anotacao = NULL;
     newNode->params = NULL;
     newNode->numeroParametros = -1;
     newNode->to_anote = 1;
-    newNode->line = line;
-    newNode->column = column;
+    newNode->linha = linha;
+    newNode->coluna = coluna;
     newNode->child = NULL;
     newNode->brother = NULL;
 
@@ -105,14 +105,14 @@ void joinType(node *nodeType, node *nodeX) {
     }
 }
 
-void astreePrint(node *Node, int numPontos) {
+void imprimirArvore(node *Node, int numPontos) {
 
     if (Node == NULL) {
         return;
     }
 
     if (strcmp(Node->Type, "NULL") == 0) {
-        astreePrint(Node->brother, numPontos);
+        imprimirArvore(Node->brother, numPontos);
         return;
     }
 
@@ -122,25 +122,25 @@ void astreePrint(node *Node, int numPontos) {
             printf("..");
         }
 
-        if (Node->value != NULL) {
-            printf("%s(%s)\n", Node->Type, Node->value);
+        if (Node->valor != NULL) {
+            printf("%s(%s)\n", Node->Type, Node->valor);
         } else {
             printf("%s\n", Node->Type);
         }
     }
 
-    astreePrint(Node->child, numPontos + 1);
-    astreePrint(Node->brother, numPontos);
+    imprimirArvore(Node->child, numPontos + 1);
+    imprimirArvore(Node->brother, numPontos);
 }
 
-void astreeClean(node *Node) {
+void limparArvore(node *Node) {
     if (Node == NULL) {
         return;
     }
 
-    if (Node->value != NULL) {
-        free(Node->value);
-        Node->value = NULL;
+    if (Node->valor != NULL) {
+        free(Node->valor);
+        Node->valor = NULL;
     }
 
     if (Node->Type != NULL) {
@@ -148,9 +148,9 @@ void astreeClean(node *Node) {
         Node->Type = NULL;
     }
 
-    astreeClean(Node->child);
+    limparArvore(Node->child);
     Node->child = NULL;
-    astreeClean(Node->brother);
+    limparArvore(Node->brother);
     Node->brother = NULL;
 
     free(Node);
