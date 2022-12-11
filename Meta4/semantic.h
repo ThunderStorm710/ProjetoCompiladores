@@ -121,17 +121,16 @@ typedef struct _strlit_list{
     struct _strlit_list *next;
 } strlit_list;
 
-/* LLVM */
-void clearList(strlit_list *var);
+void LimpaLista(strlit_list *variavel);
 void change_strlit(char *strlit);
-void print_strlit(strlit_list *strList);
+void print_stringlit(strlit_list *stringlit_List);
 strlit_list *create_strlit(char *valor, char *type);
 void add_strlit(strlit_list *strList, strlit_list *new);
 void declare_all_strlit(node *atual);
-void print_global_declarations(node *atual);
-void generate_llvm(node *atual);
+void print_declaracao_var_func_global(node *atual);
+void gera_codigo_llvm(node *atual);
 void create_header(node *atual);
-void create_llvm(node *atual);
+void gera_llvm(node *atual);
 void code_llvm(node *atual);
 char *verify_its_global(char *name);
 void function_varDecl(char *type, char *name);
