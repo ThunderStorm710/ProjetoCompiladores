@@ -32,12 +32,14 @@
 ![image](https://user-images.githubusercontent.com/108558031/203457742-749d640d-3a8d-4f1e-b3e3-60a1035f2b89.png)
 
 
-### Meta 4 -- Nota Final --> MOOSHAK
-* A --> 0/250
-* B --> 0/25
-* C --> 0/25
-* D --> 0/35
-* E --> 0/30
-* F --> 0/45 
-* G --> 0/45
-* H --> 0/40
+### Meta 4 -- Nota Final --> 250 MOOSHAK
+* A --> 250/250
+* B --> 25/25
+* C --> 25/25
+* D --> 35/35
+* E --> 30/30
+* F --> 45/45 
+* G --> 45/45
+* H --> 40/40
+
+![image](https://user-images.githubusercontent.com/108558031/206914227-2d1d7be0-bdcd-47e1-b29c-0209deba6d26.png)

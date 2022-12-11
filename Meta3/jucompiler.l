@@ -179,7 +179,6 @@ RESERVED                                   (private|goto|do|synchronized|package
 int main(int argc,char* argv[]){
     if (argc == 1){
         //imprimir igual a flag -t (excepto a arvore de sintaxe abstrata) mais arvore de sintaxe abstrata anotada
-
         getYacc = true;
         getPrintEronly = true;
         tabelaGlobal = NULL;
@@ -187,7 +186,7 @@ int main(int argc,char* argv[]){
         yyparse();
 
         if(numErrors == 0){
-            errosSemantica == 0;
+            errosSemantica = 0;
             criarTabelaSemantica(head);
             if (errosSemantica == 0){
                 imprimirTabelaGlobal(tabelaGlobal);
@@ -229,7 +228,6 @@ int main(int argc,char* argv[]){
 			}
 		}else if(strcmp(argv[1],"-s")==0){
             //imprimir igual a flag -t (excepto a arvore de sintaxe abstrata) mais arvore de sintaxe abstrata anotada
-
             getYacc = true;
             getPrintEronly = true;
             tabelaGlobal = NULL;
@@ -247,7 +245,7 @@ int main(int argc,char* argv[]){
     }
 
     limparArvore(head);
-    //yylex_destroy();
+    yylex_destroy();
 
     return 0;
 }

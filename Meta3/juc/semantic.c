@@ -43,7 +43,7 @@ node *criaNode(char *Type, char *valor, int linha, int coluna) {
     novoNo->anotacao = NULL;
     novoNo->params = NULL;
     novoNo->numeroParametros = -1;
-    novoNo->aAnotar = 1;
+    novoNo->to_anote = 1;
     novoNo->linha = linha;
     novoNo->coluna = coluna;
     novoNo->child = NULL;
@@ -158,6 +158,7 @@ void limparArvore(node *Node) {
 }
 
 /* ------------------ SEMANTICS ---------------------- */
+
 /* TABLES */
 void limparParametros(param_list *param) {
     if (param == NULL) {
@@ -539,7 +540,7 @@ void criarTabelaSemantica(node *atual) {
                                 auxParamPrint = auxParamPrint->next;
                             }
                             printf(") already defined\n");
-                            aux3->aAnotar = 0;
+                            aux3->to_anote = 0;
                             limparVariaveis(auxVar);
 
                         } else {
@@ -570,7 +571,7 @@ void criarTabelaSemantica(node *atual) {
                         aux2 = aux1->child; //TYPE
                         aux3 = aux2->brother; //ID
 
-                        if (aux3->aAnotar == 0) {
+                        if (aux3->to_anote == 0) {
                             error = 1;
                             break;
                         }

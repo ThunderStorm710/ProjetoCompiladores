@@ -186,10 +186,12 @@ int main(int argc,char* argv[]){
         yyparse();
 
         if(numErrors == 0){
-            errosSemantica == 0;
+            errosSemantica = 0;
             criarTabelaSemantica(head);
             if (errosSemantica == 0){
-                create_llvm(head);
+                imprimirTabelaGlobal(tabelaGlobal);
+                imprimirTabelasLocais(tabelaLocal);
+                imprimirArvoreAnotada(head, 0);
             }
             limparTabelas(tabelaGlobal, tabelaLocal);
         }

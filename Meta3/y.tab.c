@@ -75,7 +75,6 @@
     #include <stdio.h>
     #include <stdlib.h>
     #include <string.h>
-    #include "Tree.h"
     #include "semantic.h"
 
     int yylex(void);
@@ -86,7 +85,7 @@
     node *node2 = NULL;
     node *node3 = NULL;
 
-#line 90 "y.tab.c"
+#line 89 "y.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -238,12 +237,12 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 21 "jucompiler.y"
+#line 20 "jucompiler.y"
 
     struct token* token;
     struct node* node;
 
-#line 247 "y.tab.c"
+#line 246 "y.tab.c"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -623,15 +622,15 @@ static const yytype_int8 yytranslate[] =
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] =
 {
-       0,    50,    50,    56,    57,    58,    59,    63,    68,    75,
-      78,    79,    88,    89,    90,    94,   101,   110,   117,   128,
-     137,   148,   149,   159,   163,   164,   165,   169,   177,   178,
-     186,   190,   195,   202,   208,   211,   215,   217,   219,   221,
-     223,   227,   233,   236,   238,   244,   249,   256,   260,   261,
-     265,   272,   279,   282,   284,   287,   290,   293,   296,   299,
-     302,   305,   308,   311,   314,   317,   320,   323,   326,   329,
-     332,   335,   338,   341,   344,   345,   346,   347,   350,   355,
-     358,   361,   364
+       0,    49,    49,    55,    56,    57,    58,    62,    67,    74,
+      77,    78,    87,    88,    89,    93,   100,   109,   116,   127,
+     136,   147,   148,   158,   162,   163,   164,   168,   176,   177,
+     185,   189,   194,   201,   207,   210,   214,   216,   218,   220,
+     222,   226,   232,   235,   237,   243,   248,   255,   259,   260,
+     264,   271,   278,   281,   283,   286,   289,   292,   295,   298,
+     301,   304,   307,   310,   313,   316,   319,   322,   325,   328,
+     331,   334,   337,   340,   343,   344,   345,   346,   349,   354,
+     357,   360,   363
 };
 #endif
 
@@ -1576,49 +1575,49 @@ yyreduce:
   switch (yyn)
     {
   case 2:
-#line 50 "jucompiler.y"
+#line 49 "jucompiler.y"
                                                                             {head = criaNode("Program", NULL, 0, 0);
                                                                             node1 = criaNode("Id", (yyvsp[-3].token)->valor, (yyvsp[-3].token)->linha, (yyvsp[-3].token)->coluna);
                                                                             addChild(head, node1);
                                                                             addBrother(node1, (yyvsp[-1].node));
                                                                             libertaToken((yyvsp[-3].token));}
-#line 1586 "y.tab.c"
+#line 1585 "y.tab.c"
     break;
 
   case 3:
-#line 56 "jucompiler.y"
+#line 55 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("NULL", NULL, 0, 0);}
-#line 1592 "y.tab.c"
+#line 1591 "y.tab.c"
     break;
 
   case 4:
-#line 57 "jucompiler.y"
+#line 56 "jucompiler.y"
                                                                             {(yyval.node) = (yyvsp[-1].node); addBrother((yyvsp[-1].node), (yyvsp[0].node));}
-#line 1598 "y.tab.c"
+#line 1597 "y.tab.c"
     break;
 
   case 5:
-#line 58 "jucompiler.y"
+#line 57 "jucompiler.y"
                                                                             {(yyval.node) = (yyvsp[-1].node); addBrother((yyvsp[-1].node), (yyvsp[0].node));}
-#line 1604 "y.tab.c"
+#line 1603 "y.tab.c"
     break;
 
   case 6:
-#line 59 "jucompiler.y"
+#line 58 "jucompiler.y"
                                                                             {(yyval.node) = (yyvsp[-1].node);}
-#line 1610 "y.tab.c"
+#line 1609 "y.tab.c"
     break;
 
   case 7:
-#line 63 "jucompiler.y"
+#line 62 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("MethodDecl", NULL, 0, 0);
                                                                             addChild((yyval.node), (yyvsp[-1].node));
                                                                             addBrother((yyvsp[-1].node), (yyvsp[0].node));}
-#line 1618 "y.tab.c"
+#line 1617 "y.tab.c"
     break;
 
   case 8:
-#line 68 "jucompiler.y"
+#line 67 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("FieldDecl", NULL, 0, 0);
                                                                             addChild((yyval.node), (yyvsp[-3].node));
                                                                             node1 = criaNode("Id", (yyvsp[-2].token)->valor, (yyvsp[-2].token)->linha, (yyvsp[-2].token)->coluna);
@@ -1626,63 +1625,63 @@ yyreduce:
                                                                             joinType((yyvsp[-3].node), (yyvsp[-1].node));
                                                                             addBrother((yyval.node), (yyvsp[-1].node));
                                                                             libertaToken((yyvsp[-2].token));}
-#line 1630 "y.tab.c"
+#line 1629 "y.tab.c"
     break;
 
   case 9:
-#line 75 "jucompiler.y"
+#line 74 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Error", NULL, 0, 0);}
-#line 1636 "y.tab.c"
+#line 1635 "y.tab.c"
     break;
 
   case 10:
-#line 78 "jucompiler.y"
+#line 77 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("NULL", NULL, 0, 0);}
-#line 1642 "y.tab.c"
+#line 1641 "y.tab.c"
     break;
 
   case 11:
-#line 79 "jucompiler.y"
+#line 78 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("FieldDecl", NULL, 0, 0);
                                                                             addBrother((yyvsp[-2].node), (yyval.node));
                                                                             node1 = criaNode("Id", (yyvsp[0].token)->valor, (yyvsp[0].token)->linha, (yyvsp[0].token)->coluna);
                                                                             addChild((yyval.node), node1);
                                                                             (yyval.node) = (yyvsp[-2].node); 
                                                                             libertaToken((yyvsp[0].token));}
-#line 1653 "y.tab.c"
+#line 1652 "y.tab.c"
     break;
 
   case 12:
-#line 88 "jucompiler.y"
+#line 87 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Bool", NULL, 0, 0);}
-#line 1659 "y.tab.c"
+#line 1658 "y.tab.c"
     break;
 
   case 13:
-#line 89 "jucompiler.y"
+#line 88 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Int", NULL, 0, 0);}
-#line 1665 "y.tab.c"
+#line 1664 "y.tab.c"
     break;
 
   case 14:
-#line 90 "jucompiler.y"
+#line 89 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Double", NULL, 0, 0);}
-#line 1671 "y.tab.c"
+#line 1670 "y.tab.c"
     break;
 
   case 15:
-#line 94 "jucompiler.y"
+#line 93 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("MethodHeader", NULL, 0, 0);
                                                                             addChild((yyval.node), (yyvsp[-3].node));
                                                                             node1 = criaNode("Id", (yyvsp[-2].token)->valor, (yyvsp[-2].token)->linha, (yyvsp[-2].token)->coluna);
                                                                             addBrother((yyvsp[-3].node), node1);
                                                                             addBrother(node1, criaNode("MethodParams", NULL, 0, 0));
                                                                             libertaToken((yyvsp[-2].token));}
-#line 1682 "y.tab.c"
+#line 1681 "y.tab.c"
     break;
 
   case 16:
-#line 101 "jucompiler.y"
+#line 100 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("MethodHeader", NULL, 0, 0);
                                                                             node1 = criaNode("Void", NULL, (yyvsp[-3].token)->linha, (yyvsp[-3].token)->coluna);
                                                                             addChild((yyval.node), node1);
@@ -1691,22 +1690,22 @@ yyreduce:
                                                                             addBrother(node2, criaNode("MethodParams", NULL, 0, 0));
                                                                             libertaToken((yyvsp[-3].token));
                                                                             libertaToken((yyvsp[-2].token));}
-#line 1695 "y.tab.c"
+#line 1694 "y.tab.c"
     break;
 
   case 17:
-#line 110 "jucompiler.y"
+#line 109 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("MethodHeader", NULL, 0, 0);
                                                                             addChild((yyval.node), (yyvsp[-4].node));
                                                                             node1 = criaNode("Id", (yyvsp[-3].token)->valor, (yyvsp[-3].token)->linha, (yyvsp[-3].token)->coluna);
                                                                             addBrother((yyvsp[-4].node), node1);
                                                                             addBrother(node1, (yyvsp[-1].node));
                                                                             libertaToken((yyvsp[-3].token));}
-#line 1706 "y.tab.c"
+#line 1705 "y.tab.c"
     break;
 
   case 18:
-#line 117 "jucompiler.y"
+#line 116 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("MethodHeader", NULL, 0, 0);
                                                                             node1 = criaNode("Void", NULL, (yyvsp[-4].token)->linha, (yyvsp[-4].token)->coluna);
                                                                             addChild((yyval.node), node1);
@@ -1715,11 +1714,11 @@ yyreduce:
                                                                             addBrother(node2, (yyvsp[-1].node));
                                                                             libertaToken((yyvsp[-4].token));
                                                                             libertaToken((yyvsp[-3].token));}
-#line 1719 "y.tab.c"
+#line 1718 "y.tab.c"
     break;
 
   case 19:
-#line 128 "jucompiler.y"
+#line 127 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("MethodParams", NULL, 0, 0);
                                                                             node1 = criaNode("ParamDecl", NULL, 0, 0);
                                                                             addChild((yyval.node), node1);
@@ -1728,11 +1727,11 @@ yyreduce:
                                                                             addChild(node1, (yyvsp[-2].node));
                                                                             addBrother(node1, (yyvsp[0].node));
                                                                             libertaToken((yyvsp[-1].token));}
-#line 1732 "y.tab.c"
+#line 1731 "y.tab.c"
     break;
 
   case 20:
-#line 137 "jucompiler.y"
+#line 136 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("MethodParams", NULL, 0, 0);
                                                                             node1 = criaNode("ParamDecl", NULL, 0, 0);
                                                                             addChild((yyval.node), node1);
@@ -1742,17 +1741,17 @@ yyreduce:
                                                                             addBrother(node2, node3);
                                                                             libertaToken((yyvsp[-3].token));
                                                                             libertaToken((yyvsp[0].token));}
-#line 1746 "y.tab.c"
+#line 1745 "y.tab.c"
     break;
 
   case 21:
-#line 148 "jucompiler.y"
+#line 147 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("NULL", NULL, 0, 0);}
-#line 1752 "y.tab.c"
+#line 1751 "y.tab.c"
     break;
 
   case 22:
-#line 149 "jucompiler.y"
+#line 148 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("ParamDecl", NULL, 0, 0);
                                                                             node1 = criaNode("Id", (yyvsp[0].token)->valor, (yyvsp[0].token)->linha, (yyvsp[0].token)->coluna);
                                                                             addChild((yyval.node), (yyvsp[-1].node));
@@ -1760,36 +1759,36 @@ yyreduce:
                                                                             addBrother((yyvsp[-3].node), (yyval.node));
                                                                             (yyval.node) = (yyvsp[-3].node);
                                                                             libertaToken((yyvsp[0].token));}
-#line 1764 "y.tab.c"
+#line 1763 "y.tab.c"
     break;
 
   case 23:
-#line 159 "jucompiler.y"
+#line 158 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("MethodBody", NULL, 0, 0);
                                                                             addChild((yyval.node), (yyvsp[-1].node));}
-#line 1771 "y.tab.c"
+#line 1770 "y.tab.c"
     break;
 
   case 24:
-#line 163 "jucompiler.y"
+#line 162 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("NULL", NULL, 0, 0);}
-#line 1777 "y.tab.c"
+#line 1776 "y.tab.c"
     break;
 
   case 25:
-#line 164 "jucompiler.y"
+#line 163 "jucompiler.y"
                                                                             {(yyval.node) = (yyvsp[-1].node); addBrother((yyvsp[-1].node), (yyvsp[0].node));}
-#line 1783 "y.tab.c"
+#line 1782 "y.tab.c"
     break;
 
   case 26:
-#line 165 "jucompiler.y"
+#line 164 "jucompiler.y"
                                                                             {(yyval.node) = (yyvsp[-1].node); addBrother((yyvsp[-1].node), (yyvsp[0].node));}
-#line 1789 "y.tab.c"
+#line 1788 "y.tab.c"
     break;
 
   case 27:
-#line 169 "jucompiler.y"
+#line 168 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("VarDecl", NULL, 0, 0);
                                                                             addChild((yyval.node), (yyvsp[-3].node));
                                                                             node1 = criaNode("Id", (yyvsp[-2].token)->valor, (yyvsp[-2].token)->linha, (yyvsp[-2].token)->coluna);
@@ -1797,414 +1796,414 @@ yyreduce:
                                                                             joinType((yyvsp[-3].node), (yyvsp[-1].node));
                                                                             addBrother((yyval.node), (yyvsp[-1].node));
                                                                             libertaToken((yyvsp[-2].token));}
-#line 1801 "y.tab.c"
+#line 1800 "y.tab.c"
     break;
 
   case 28:
-#line 177 "jucompiler.y"
+#line 176 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("NULL", NULL, 0, 0);}
-#line 1807 "y.tab.c"
+#line 1806 "y.tab.c"
     break;
 
   case 29:
-#line 178 "jucompiler.y"
+#line 177 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("VarDecl", NULL, 0, 0);
                                                                             node1 = criaNode("Id", (yyvsp[0].token)->valor, (yyvsp[0].token)->linha, (yyvsp[0].token)->coluna);
                                                                             addChild((yyval.node), node1);
                                                                             addBrother((yyvsp[-2].node), (yyval.node));
                                                                             (yyval.node) = (yyvsp[-2].node);
                                                                             libertaToken((yyvsp[0].token));}
-#line 1818 "y.tab.c"
+#line 1817 "y.tab.c"
     break;
 
   case 30:
-#line 186 "jucompiler.y"
+#line 185 "jucompiler.y"
                                                                             {if(countBlock((yyvsp[-1].node))>2){(yyval.node) = criaNode("Block", NULL, 0, 0); addChild((yyval.node), (yyvsp[-1].node));}
-                                                                            else if(countBlock((yyvsp[-1].node))==0){(yyval.node) = NULL; astreeClean((yyvsp[-1].node));}
+                                                                            else if(countBlock((yyvsp[-1].node))==0){(yyval.node) = NULL; limparArvore((yyvsp[-1].node));}
                                                                             else{(yyval.node) = (yyvsp[-1].node);}}
-#line 1826 "y.tab.c"
+#line 1825 "y.tab.c"
     break;
 
   case 31:
-#line 190 "jucompiler.y"
+#line 189 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("If",NULL, (yyvsp[-4].token)->linha, (yyvsp[-4].token)->coluna); 
                                                                             if((yyvsp[0].node) == NULL){node1=criaNode("Block",NULL, 0, 0); addBrother((yyvsp[-2].node), node1);}
                                                                             else{addBrother((yyvsp[-2].node),(yyvsp[0].node));} addBrother((yyvsp[-2].node), criaNode("Block",NULL, 0, 0)); addChild((yyval.node),(yyvsp[-2].node));
                                                                             libertaToken((yyvsp[-4].token));}
-#line 1835 "y.tab.c"
+#line 1834 "y.tab.c"
     break;
 
   case 32:
-#line 195 "jucompiler.y"
+#line 194 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("If", NULL, (yyvsp[-6].token)->linha, (yyvsp[-6].token)->coluna); 
                                                                             if((yyvsp[-2].node) == NULL){node1=criaNode("Block", NULL, 0, 0); addBrother((yyvsp[-4].node), node1);}
                                                                             else{addBrother((yyvsp[-4].node), (yyvsp[-2].node));}
                                                                             if((yyvsp[0].node) == NULL){node1 = criaNode("Block", NULL, 0, 0); addBrother((yyvsp[-4].node), node1);}
                                                                             else{addBrother((yyvsp[-4].node), (yyvsp[0].node));} addChild((yyval.node),(yyvsp[-4].node));
                                                                             libertaToken((yyvsp[-6].token));}
-#line 1846 "y.tab.c"
+#line 1845 "y.tab.c"
     break;
 
   case 33:
-#line 202 "jucompiler.y"
+#line 201 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("While",NULL, (yyvsp[-4].token)->linha, (yyvsp[-4].token)->coluna);
                                                                             if((yyvsp[0].node) == NULL){node1=criaNode("Block",NULL, 0, 0); addBrother((yyvsp[-2].node), node1);}
                                                                             else{addBrother((yyvsp[-2].node),(yyvsp[0].node));}
                                                                             addChild((yyval.node),(yyvsp[-2].node));
                                                                             libertaToken((yyvsp[-4].token));}
-#line 1856 "y.tab.c"
+#line 1855 "y.tab.c"
     break;
 
   case 34:
-#line 208 "jucompiler.y"
+#line 207 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Return", NULL, (yyvsp[-1].token)->linha, (yyvsp[-1].token)->coluna);
                                                                             libertaToken((yyvsp[-1].token));}
-#line 1863 "y.tab.c"
+#line 1862 "y.tab.c"
     break;
 
   case 35:
-#line 211 "jucompiler.y"
+#line 210 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Return", NULL, (yyvsp[-2].token)->linha, (yyvsp[-2].token)->coluna);
                                                                             addChild((yyval.node), (yyvsp[-1].node));
                                                                             libertaToken((yyvsp[-2].token));}
-#line 1871 "y.tab.c"
+#line 1870 "y.tab.c"
     break;
 
   case 36:
-#line 215 "jucompiler.y"
+#line 214 "jucompiler.y"
                                                                             {(yyval.node) = NULL;}
-#line 1877 "y.tab.c"
+#line 1876 "y.tab.c"
     break;
 
   case 37:
-#line 217 "jucompiler.y"
+#line 216 "jucompiler.y"
                                                                             {(yyval.node) = (yyvsp[-1].node);}
-#line 1883 "y.tab.c"
+#line 1882 "y.tab.c"
     break;
 
   case 38:
-#line 219 "jucompiler.y"
+#line 218 "jucompiler.y"
                                                                             {(yyval.node) = (yyvsp[-1].node);}
-#line 1889 "y.tab.c"
+#line 1888 "y.tab.c"
     break;
 
   case 39:
-#line 221 "jucompiler.y"
+#line 220 "jucompiler.y"
                                                                             {(yyval.node) = (yyvsp[-1].node);}
-#line 1895 "y.tab.c"
+#line 1894 "y.tab.c"
     break;
 
   case 40:
-#line 223 "jucompiler.y"
+#line 222 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Print", NULL, (yyvsp[-4].token)->linha, (yyvsp[-4].token)->coluna);
                                                                             addChild((yyval.node), (yyvsp[-2].node));
                                                                             libertaToken((yyvsp[-4].token));}
-#line 1903 "y.tab.c"
+#line 1902 "y.tab.c"
     break;
 
   case 41:
-#line 227 "jucompiler.y"
+#line 226 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Print", NULL, (yyvsp[-4].token)->linha, (yyvsp[-4].token)->coluna);
                                                                             node1 = criaNode("StrLit", (yyvsp[-2].token)->valor, (yyvsp[-2].token)->linha, (yyvsp[-2].token)->coluna);
                                                                             addChild((yyval.node), node1);
                                                                             libertaToken((yyvsp[-4].token));
                                                                             libertaToken((yyvsp[-2].token));}
-#line 1913 "y.tab.c"
+#line 1912 "y.tab.c"
     break;
 
   case 42:
-#line 233 "jucompiler.y"
+#line 232 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Error", NULL, 0, 0);}
-#line 1919 "y.tab.c"
+#line 1918 "y.tab.c"
     break;
 
   case 43:
-#line 236 "jucompiler.y"
+#line 235 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("NULL", NULL, 0, 0);}
-#line 1925 "y.tab.c"
+#line 1924 "y.tab.c"
     break;
 
   case 44:
-#line 238 "jucompiler.y"
+#line 237 "jucompiler.y"
                                                                             {addBrother((yyvsp[-1].node), (yyvsp[0].node)); (yyval.node) = (yyvsp[-1].node);}
-#line 1931 "y.tab.c"
+#line 1930 "y.tab.c"
     break;
 
   case 45:
-#line 244 "jucompiler.y"
+#line 243 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Call", NULL, (yyvsp[-2].token)->linha, (yyvsp[-2].token)->coluna);
                                                                             node1 = criaNode("Id", (yyvsp[-2].token)->valor, (yyvsp[-2].token)->linha, (yyvsp[-2].token)->coluna);
                                                                             addChild((yyval.node), node1);
                                                                             libertaToken((yyvsp[-2].token));}
-#line 1940 "y.tab.c"
+#line 1939 "y.tab.c"
     break;
 
   case 46:
-#line 249 "jucompiler.y"
+#line 248 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Call", NULL, (yyvsp[-4].token)->linha, (yyvsp[-4].token)->coluna);
                                                                             node1 = criaNode("Id", (yyvsp[-4].token)->valor, (yyvsp[-4].token)->linha, (yyvsp[-4].token)->coluna);
                                                                             addChild((yyval.node), node1);
                                                                             addBrother(node1, (yyvsp[-2].node));
                                                                             addBrother(node1, (yyvsp[-1].node));
                                                                             libertaToken((yyvsp[-4].token));}
-#line 1951 "y.tab.c"
+#line 1950 "y.tab.c"
     break;
 
   case 47:
-#line 256 "jucompiler.y"
+#line 255 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Error", NULL, 0, 0); 
                                                                             libertaToken((yyvsp[-3].token));}
-#line 1958 "y.tab.c"
+#line 1957 "y.tab.c"
     break;
 
   case 48:
-#line 260 "jucompiler.y"
+#line 259 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("NULL", NULL, 0, 0);}
-#line 1964 "y.tab.c"
+#line 1963 "y.tab.c"
     break;
 
   case 49:
-#line 261 "jucompiler.y"
+#line 260 "jucompiler.y"
                                                                             {(yyval.node) = (yyvsp[-2].node); addBrother((yyvsp[-2].node), (yyvsp[0].node));}
-#line 1970 "y.tab.c"
+#line 1969 "y.tab.c"
     break;
 
   case 50:
-#line 265 "jucompiler.y"
+#line 264 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Assign", NULL, (yyvsp[-1].token)->linha, (yyvsp[-1].token)->coluna);
                                                                             node1 = criaNode("Id", (yyvsp[-2].token)->valor, (yyvsp[-2].token)->linha, (yyvsp[-2].token)->coluna);
                                                                             addChild((yyval.node), node1);
                                                                             addBrother(node1, (yyvsp[0].node));
                                                                             libertaToken((yyvsp[-1].token));
                                                                             libertaToken((yyvsp[-2].token));}
-#line 1981 "y.tab.c"
+#line 1980 "y.tab.c"
     break;
 
   case 51:
-#line 272 "jucompiler.y"
+#line 271 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("ParseArgs", NULL, (yyvsp[-6].token)->linha, (yyvsp[-6].token)->coluna);
                                                                             node1 = criaNode("Id", (yyvsp[-4].token)->valor, (yyvsp[-4].token)->linha, (yyvsp[-4].token)->coluna);
                                                                             addChild((yyval.node), node1);
                                                                             addBrother(node1, (yyvsp[-2].node));
                                                                             libertaToken((yyvsp[-6].token));
                                                                             libertaToken((yyvsp[-4].token));}
-#line 1992 "y.tab.c"
+#line 1991 "y.tab.c"
     break;
 
   case 52:
-#line 279 "jucompiler.y"
+#line 278 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Error", NULL, 0, 0);}
-#line 1998 "y.tab.c"
+#line 1997 "y.tab.c"
     break;
 
   case 53:
-#line 282 "jucompiler.y"
+#line 281 "jucompiler.y"
                                                                             {(yyval.node) = (yyvsp[0].node);}
-#line 2004 "y.tab.c"
+#line 2003 "y.tab.c"
     break;
 
   case 54:
-#line 284 "jucompiler.y"
+#line 283 "jucompiler.y"
                                                                             {(yyval.node) = (yyvsp[0].node);}
-#line 2010 "y.tab.c"
+#line 2009 "y.tab.c"
     break;
 
   case 55:
-#line 287 "jucompiler.y"
+#line 286 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Add", NULL, (yyvsp[-1].token)->linha, (yyvsp[-1].token)->coluna);
                                                                             addChild((yyval.node),(yyvsp[-2].node)); addBrother((yyvsp[-2].node),(yyvsp[0].node)); libertaToken((yyvsp[-1].token));}
-#line 2017 "y.tab.c"
+#line 2016 "y.tab.c"
     break;
 
   case 56:
-#line 290 "jucompiler.y"
+#line 289 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Sub", NULL, (yyvsp[-1].token)->linha, (yyvsp[-1].token)->coluna);
                                                                             addChild((yyval.node),(yyvsp[-2].node)); addBrother((yyvsp[-2].node),(yyvsp[0].node)); libertaToken((yyvsp[-1].token));}
-#line 2024 "y.tab.c"
+#line 2023 "y.tab.c"
     break;
 
   case 57:
-#line 293 "jucompiler.y"
+#line 292 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Mul", NULL, (yyvsp[-1].token)->linha, (yyvsp[-1].token)->coluna);
                                                                             addChild((yyval.node),(yyvsp[-2].node)); addBrother((yyvsp[-2].node),(yyvsp[0].node)); libertaToken((yyvsp[-1].token));}
-#line 2031 "y.tab.c"
+#line 2030 "y.tab.c"
     break;
 
   case 58:
-#line 296 "jucompiler.y"
+#line 295 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Div", NULL, (yyvsp[-1].token)->linha, (yyvsp[-1].token)->coluna);
                                                                             addChild((yyval.node),(yyvsp[-2].node)); addBrother((yyvsp[-2].node),(yyvsp[0].node)); libertaToken((yyvsp[-1].token));}
-#line 2038 "y.tab.c"
+#line 2037 "y.tab.c"
     break;
 
   case 59:
-#line 299 "jucompiler.y"
+#line 298 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Mod", NULL, (yyvsp[-1].token)->linha, (yyvsp[-1].token)->coluna);
                                                                             addChild((yyval.node),(yyvsp[-2].node)); addBrother((yyvsp[-2].node),(yyvsp[0].node)); libertaToken((yyvsp[-1].token));}
-#line 2045 "y.tab.c"
+#line 2044 "y.tab.c"
     break;
 
   case 60:
-#line 302 "jucompiler.y"
+#line 301 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("And", NULL, (yyvsp[-1].token)->linha, (yyvsp[-1].token)->coluna);
                                                                             addChild((yyval.node),(yyvsp[-2].node)); addBrother((yyvsp[-2].node),(yyvsp[0].node)); libertaToken((yyvsp[-1].token));}
-#line 2052 "y.tab.c"
+#line 2051 "y.tab.c"
     break;
 
   case 61:
-#line 305 "jucompiler.y"
+#line 304 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Or", NULL, (yyvsp[-1].token)->linha, (yyvsp[-1].token)->coluna);
                                                                             addChild((yyval.node),(yyvsp[-2].node)); addBrother((yyvsp[-2].node),(yyvsp[0].node)); libertaToken((yyvsp[-1].token));}
-#line 2059 "y.tab.c"
+#line 2058 "y.tab.c"
     break;
 
   case 62:
-#line 308 "jucompiler.y"
+#line 307 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Xor", NULL, (yyvsp[-1].token)->linha, (yyvsp[-1].token)->coluna);
                                                                             addChild((yyval.node),(yyvsp[-2].node)); addBrother((yyvsp[-2].node),(yyvsp[0].node)); libertaToken((yyvsp[-1].token));}
-#line 2066 "y.tab.c"
+#line 2065 "y.tab.c"
     break;
 
   case 63:
-#line 311 "jucompiler.y"
+#line 310 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Lshift", NULL, (yyvsp[-1].token)->linha, (yyvsp[-1].token)->coluna);
                                                                             addChild((yyval.node),(yyvsp[-2].node)); addBrother((yyvsp[-2].node),(yyvsp[0].node)); libertaToken((yyvsp[-1].token));}
-#line 2073 "y.tab.c"
+#line 2072 "y.tab.c"
     break;
 
   case 64:
-#line 314 "jucompiler.y"
+#line 313 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Rshift", NULL, (yyvsp[-1].token)->linha, (yyvsp[-1].token)->coluna);
                                                                             addChild((yyval.node),(yyvsp[-2].node)); addBrother((yyvsp[-2].node),(yyvsp[0].node)); libertaToken((yyvsp[-1].token));}
-#line 2080 "y.tab.c"
+#line 2079 "y.tab.c"
     break;
 
   case 65:
-#line 317 "jucompiler.y"
+#line 316 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Eq", NULL, (yyvsp[-1].token)->linha, (yyvsp[-1].token)->coluna);
                                                                             addChild((yyval.node),(yyvsp[-2].node)); addBrother((yyvsp[-2].node),(yyvsp[0].node)); libertaToken((yyvsp[-1].token));}
-#line 2087 "y.tab.c"
+#line 2086 "y.tab.c"
     break;
 
   case 66:
-#line 320 "jucompiler.y"
+#line 319 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Ge", NULL, (yyvsp[-1].token)->linha, (yyvsp[-1].token)->coluna);
                                                                             addChild((yyval.node),(yyvsp[-2].node)); addBrother((yyvsp[-2].node),(yyvsp[0].node)); libertaToken((yyvsp[-1].token));}
-#line 2094 "y.tab.c"
+#line 2093 "y.tab.c"
     break;
 
   case 67:
-#line 323 "jucompiler.y"
+#line 322 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Gt", NULL, (yyvsp[-1].token)->linha, (yyvsp[-1].token)->coluna);
                                                                             addChild((yyval.node),(yyvsp[-2].node)); addBrother((yyvsp[-2].node),(yyvsp[0].node)); libertaToken((yyvsp[-1].token));}
-#line 2101 "y.tab.c"
+#line 2100 "y.tab.c"
     break;
 
   case 68:
-#line 326 "jucompiler.y"
+#line 325 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Le", NULL, (yyvsp[-1].token)->linha, (yyvsp[-1].token)->coluna);
                                                                             addChild((yyval.node),(yyvsp[-2].node)); addBrother((yyvsp[-2].node),(yyvsp[0].node)); libertaToken((yyvsp[-1].token));}
-#line 2108 "y.tab.c"
+#line 2107 "y.tab.c"
     break;
 
   case 69:
-#line 329 "jucompiler.y"
+#line 328 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Lt", NULL, (yyvsp[-1].token)->linha, (yyvsp[-1].token)->coluna);
                                                                             addChild((yyval.node),(yyvsp[-2].node)); addBrother((yyvsp[-2].node),(yyvsp[0].node)); libertaToken((yyvsp[-1].token));}
-#line 2115 "y.tab.c"
+#line 2114 "y.tab.c"
     break;
 
   case 70:
-#line 332 "jucompiler.y"
+#line 331 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Ne", NULL, (yyvsp[-1].token)->linha, (yyvsp[-1].token)->coluna);
                                                                             addChild((yyval.node),(yyvsp[-2].node)); addBrother((yyvsp[-2].node),(yyvsp[0].node)); libertaToken((yyvsp[-1].token));}
-#line 2122 "y.tab.c"
+#line 2121 "y.tab.c"
     break;
 
   case 71:
-#line 335 "jucompiler.y"
+#line 334 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Minus", NULL, (yyvsp[-1].token)->linha, (yyvsp[-1].token)->coluna);
                                                                             addChild((yyval.node),(yyvsp[0].node)); libertaToken((yyvsp[-1].token));}
-#line 2129 "y.tab.c"
+#line 2128 "y.tab.c"
     break;
 
   case 72:
-#line 338 "jucompiler.y"
+#line 337 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Not", NULL, (yyvsp[-1].token)->linha, (yyvsp[-1].token)->coluna);
                                                                             addChild((yyval.node),(yyvsp[0].node)); libertaToken((yyvsp[-1].token));}
-#line 2136 "y.tab.c"
+#line 2135 "y.tab.c"
     break;
 
   case 73:
-#line 341 "jucompiler.y"
+#line 340 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Plus", NULL, (yyvsp[-1].token)->linha, (yyvsp[-1].token)->coluna);
                                                                             addChild((yyval.node),(yyvsp[0].node)); libertaToken((yyvsp[-1].token));}
-#line 2143 "y.tab.c"
+#line 2142 "y.tab.c"
     break;
 
   case 74:
-#line 344 "jucompiler.y"
+#line 343 "jucompiler.y"
                                                                             {(yyval.node) = (yyvsp[-1].node);}
-#line 2149 "y.tab.c"
+#line 2148 "y.tab.c"
     break;
 
   case 75:
-#line 345 "jucompiler.y"
+#line 344 "jucompiler.y"
                                                                             {(yyval.node) = (yyvsp[0].node);}
-#line 2155 "y.tab.c"
+#line 2154 "y.tab.c"
     break;
 
   case 76:
-#line 346 "jucompiler.y"
+#line 345 "jucompiler.y"
                                                                             {(yyval.node) = (yyvsp[0].node);}
-#line 2161 "y.tab.c"
+#line 2160 "y.tab.c"
     break;
 
   case 77:
-#line 347 "jucompiler.y"
+#line 346 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Id", (yyvsp[0].token)->valor, (yyvsp[0].token)->linha, (yyvsp[0].token)->coluna);
                                                                             libertaToken((yyvsp[0].token));}
-#line 2168 "y.tab.c"
+#line 2167 "y.tab.c"
     break;
 
   case 78:
-#line 350 "jucompiler.y"
+#line 349 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Length", NULL, (yyvsp[0].token)->linha, (yyvsp[0].token)->coluna);
                                                                             node1 = criaNode("Id", (yyvsp[-1].token)->valor, (yyvsp[-1].token)->linha, (yyvsp[-1].token)->coluna);
                                                                             addChild((yyval.node), node1);
                                                                             libertaToken((yyvsp[0].token)); libertaToken((yyvsp[-1].token));}
-#line 2177 "y.tab.c"
+#line 2176 "y.tab.c"
     break;
 
   case 79:
-#line 355 "jucompiler.y"
+#line 354 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("DecLit", (yyvsp[0].token)->valor, (yyvsp[0].token)->linha, (yyvsp[0].token)->coluna);
                                                                             libertaToken((yyvsp[0].token));}
-#line 2184 "y.tab.c"
+#line 2183 "y.tab.c"
     break;
 
   case 80:
-#line 358 "jucompiler.y"
+#line 357 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("RealLit", (yyvsp[0].token)->valor, (yyvsp[0].token)->linha, (yyvsp[0].token)->coluna);
                                                                             libertaToken((yyvsp[0].token));}
-#line 2191 "y.tab.c"
+#line 2190 "y.tab.c"
     break;
 
   case 81:
-#line 361 "jucompiler.y"
+#line 360 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("BoolLit", (yyvsp[0].token)->valor, (yyvsp[0].token)->linha, (yyvsp[0].token)->coluna); 
                                                                             libertaToken((yyvsp[0].token));}
-#line 2198 "y.tab.c"
+#line 2197 "y.tab.c"
     break;
 
   case 82:
-#line 364 "jucompiler.y"
+#line 363 "jucompiler.y"
                                                                             {(yyval.node) = criaNode("Error", NULL, 0, 0);}
-#line 2204 "y.tab.c"
+#line 2203 "y.tab.c"
     break;
 
 
-#line 2208 "y.tab.c"
+#line 2207 "y.tab.c"
 
       default: break;
     }
@@ -2436,5 +2435,5 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 366 "jucompiler.y"
+#line 365 "jucompiler.y"
 

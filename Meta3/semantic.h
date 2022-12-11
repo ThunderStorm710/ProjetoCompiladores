@@ -21,7 +21,7 @@ typedef struct node{
     int linha, coluna;
     char *anotacao;
     int numeroParametros;
-    int to_anote;
+    int aAnotar;
     struct _param_list *params;
 } node;
 
