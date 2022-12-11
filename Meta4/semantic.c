@@ -1226,7 +1226,6 @@ int count_compares_label = 1;
 int count_convertions = 1;
 int count_label_if = 1;
 int count_label_while = 1;
-int count_label_dowhile = 1;
 int count_label_and_or = 1;
 int founded_return = 0;
 
@@ -1295,7 +1294,7 @@ void create_llvm(node *root){
 void print_global_declarations(node *root){
     //Print first the global variables and functions declarations
     var_list *aux_vars = tabelaGlobal->vars;
-    
+    int flag = 0;
     while(aux_vars != NULL){
         if(aux_vars->function == 0){
             if(strcmp(aux_vars->type, "int") == 0){
@@ -1307,8 +1306,11 @@ void print_global_declarations(node *root){
             if(strcmp(aux_vars->type, "boolean") == 0){
                 printf("@global.var.%s = common global i1 0, align 4\n", aux_vars->name);
             }
-
             count_global_vars++;
+        } else {
+            if(strcmp(aux_vars->type, "void") == 0 && strcmp(aux_vars->name, "main") == 0){
+                flag = 1;
+            }
         }
 
         aux_vars = aux_vars->next;
@@ -1317,7 +1319,9 @@ void print_global_declarations(node *root){
     printf("declare i32 @atoi(i8*)\n");
     printf("declare i32 @printf(i8*, ...)\n\n");
     printf("define i32 @main(i32 %%argc, i8** %%argv) {\n");
-    printf("\tcall void @function.declaration.v.main.s.(i32 %%argc, i8** %%argv)\n");
+    if (flag == 1){
+        printf("\tcall void @function.declaration.v.main.s.(i32 %%argc, i8** %%argv)\n");
+    } 
     printf("\tret i32 0\n");
     printf("}\n\n");
 }
@@ -1335,7 +1339,7 @@ void change_strlit(char *valor){
     int i = 0, j = 0;
 
     aux_length_strlit = 0;
-
+    
     while (valor[i] != '\0') {
         if(valor[i] == '%'){
             aux_length_strlit++;
@@ -1408,14 +1412,8 @@ void change_strlit(char *valor){
     aux_length_strlit++;
     aux_change_strlit[j] = '\\';
     aux_change_strlit[j+1] = '0';
-    aux_change_strlit[j+2] = 'A';
-
-    aux_length_strlit++;
-    aux_change_strlit[j+3] = '\\';
-    aux_change_strlit[j+4] = '0';
-    aux_change_strlit[j+5] = '0';
-
-    aux_change_strlit[j+6] = '\0';
+    aux_change_strlit[j+2] = '0';
+    aux_change_strlit[j+3] = '\0';
 }
 
 void generate_llvm(node *atual){
@@ -1442,7 +1440,6 @@ void generate_llvm(node *atual){
         count_convertions = 1;
         count_label_if = 1;
         count_label_while = 1;
-        count_label_dowhile = 1;
         count_label_and_or = 1;
         global_function_type = NULL;
         founded_return = 0;
@@ -1757,10 +1754,10 @@ void function_varDecl(char *type, char *name){
 void function_realLit(node *atual){
     /*printf("\t%%%d = alloca double, align 8\n", count_temp_vars);
     change_reallit(atual->valor);
-    printf("\tstore double %.16E, double* %%%d, align 8\n", atof(aux_change_reallit), count_temp_vars);                  
+    printf("\tstore double %.16e, double* %%%d, align 8\n", atof(aux_change_reallit), count_temp_vars);                  
     count_temp_vars++;*/
     change_reallit(atual->valor);
-    printf("\t%%%d = fadd double 0.000000e+00, %.16E\n", count_temp_vars, atof(aux_change_reallit));
+    printf("\t%%%d = fadd double 0.000000e+00, %.16e\n", count_temp_vars, atof(aux_change_reallit));
     count_temp_vars++;
 }
 
@@ -1806,21 +1803,21 @@ void function_print(node *atual){
         count_temp_vars++;
     }
     else if(strcmp(atual->child->anotacao, "int") == 0){
-        sprintf(aux, "@.global.strlit.%d = private unnamed_addr constant [4 x i8] c\"%%d\\0A\\00\", align 1\n", count_strlit);
-        printf("\t%%%d = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.global.strlit.%d, i32 0, i32 0), i32 %%%d)\n", count_temp_vars, count_strlit, count_temp_vars-1);
+        sprintf(aux, "@.global.strlit.%d = private unnamed_addr constant [3 x i8] c\"%%d\\00\", align 1\n", count_strlit);
+        printf("\t%%%d = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.global.strlit.%d, i32 0, i32 0), i32 %%%d)\n", count_temp_vars, count_strlit, count_temp_vars-1);
         count_temp_vars++;
     }
     else if(strcmp(atual->child->anotacao, "double") == 0){                 
-        sprintf(aux, "@.global.strlit.%d = private unnamed_addr constant [7 x i8] c\"%%.16E\\0A\\00\", align 1\n", count_strlit);
-        printf("\t%%%d = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([7 x i8], [7 x i8]* @.global.strlit.%d, i32 0, i32 0), double %%%d)\n", count_temp_vars, count_strlit, count_temp_vars-1);
+        sprintf(aux, "@.global.strlit.%d = private unnamed_addr constant [6 x i8] c\"%%.16e\\00\", align 1\n", count_strlit);
+        printf("\t%%%d = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @.global.strlit.%d, i32 0, i32 0), double %%%d)\n", count_temp_vars, count_strlit, count_temp_vars-1);
         count_temp_vars++;
     }
     else if(strcmp(atual->child->anotacao, "boolean") == 0){
         printf("\t%%compare.%d = icmp eq i1 %%%d, 1\n", count_compares_label, count_temp_vars-1);
         printf("\tbr i1 %%compare.%d, label %%compare.if.%d, label %%compare.else.%d\n", count_compares_label, count_compares_label, count_compares_label);
         printf("\tcompare.if.%d:\n", count_compares_label);
-        sprintf(aux, "@.global.strlit.%d = private unnamed_addr constant [6 x i8] c\"true\\0A\\00\", align 1\n", count_strlit);
-        printf("\t\t%%%d = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @.global.strlit.%d, i32 0, i32 0))\n", count_temp_vars, count_strlit);
+        sprintf(aux, "@.global.strlit.%d = private unnamed_addr constant [5 x i8] c\"true\\00\", align 1\n", count_strlit);
+        printf("\t\t%%%d = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([5 x i8], [5 x i8]* @.global.strlit.%d, i32 0, i32 0))\n", count_temp_vars, count_strlit);
         printf("\t\tbr label %%compare.end.%d\n", count_compares_label);
         count_temp_vars++;
         count_strlit++;
@@ -1835,9 +1832,9 @@ void function_print(node *atual){
         }
 
         printf("\tcompare.else.%d:\n", count_compares_label);
-        printf("\t\t%%%d = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([7 x i8], [7 x i8]* @.global.strlit.%d, i32 0, i32 0))\n", count_temp_vars, count_strlit);
+        printf("\t\t%%%d = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @.global.strlit.%d, i32 0, i32 0))\n", count_temp_vars, count_strlit);
         printf("\t\tbr label %%compare.end.%d\n", count_compares_label);
-        sprintf(aux, "@.global.strlit.%d = private unnamed_addr constant [7 x i8] c\"false\\0A\\00\", align 1\n", count_strlit);
+        sprintf(aux, "@.global.strlit.%d = private unnamed_addr constant [6 x i8] c\"false\\00\", align 1\n", count_strlit);
         printf("\tcompare.end.%d:\n", count_compares_label);
         count_compares_label++;
         count_temp_vars++;
@@ -2235,6 +2232,27 @@ void function_and(node *atual){
     count_temp_vars++;
 }
 
+void function_xor(node *atual, int var1, int var2){
+    if(strcmp(atual->anotacao, "int") == 0){
+        printf("\t%%%d = xor i32 %%%d, %%%d\n", count_temp_vars, var1, var2);
+        count_temp_vars++;
+    }
+    else if(strcmp(atual->anotacao, "double") == 0){
+        if(strcmp(atual->child->anotacao, "int") == 0){
+            printf("\t%%%d = sitofp i32 %%%d to double\n", count_temp_vars, var1);
+            var1 = count_temp_vars;
+            count_temp_vars++;
+        }
+        if(strcmp(atual->child->brother->anotacao, "int") == 0){
+            printf("\t%%%d = sitofp i32 %%%d to double\n", count_temp_vars, var2);
+            var2 = count_temp_vars;
+            count_temp_vars++;
+        }
+        printf("\t%%%d = fxor double %%%d, %%%d\n", count_temp_vars, var1, var2);
+        count_temp_vars++;
+    }
+}
+
 void function_or(node *atual){
     node *first = atual->child->brother;
     while(strcmp(first->Type, "NULL") == 0){
@@ -2263,12 +2281,56 @@ void function_or(node *atual){
     count_temp_vars++;
 }
 
+void function_lshift(node *atual, int var1, int var2){
+    if(strcmp(atual->anotacao, "int") == 0){
+        printf("\t%%%d = shl i32 %%%d, %%%d\n", count_temp_vars, var1, var2);
+        count_temp_vars++;
+    }
+    else if(strcmp(atual->anotacao, "double") == 0){
+        if(strcmp(atual->child->anotacao, "int") == 0){
+            printf("\t%%%d = sitofp i32 %%%d to double\n", count_temp_vars, var1);
+            var1 = count_temp_vars;
+            count_temp_vars++;
+        }
+        if(strcmp(atual->child->brother->anotacao, "int") == 0){
+            printf("\t%%%d = sitofp i32 %%%d to double\n", count_temp_vars, var2);
+            var2 = count_temp_vars;
+            count_temp_vars++;
+        }
+        printf("\t%%%d = fshl double %%%d, %%%d\n", count_temp_vars, var1, var2);
+        count_temp_vars++;
+    }
+}
+
+void function_rshift(node *atual, int var1, int var2){
+    if(strcmp(atual->anotacao, "int") == 0){
+        printf("\t%%%d = ashr i32 %%%d, %%%d\n", count_temp_vars, var1, var2);
+        count_temp_vars++;
+    }
+    else if(strcmp(atual->anotacao, "double") == 0){
+        if(strcmp(atual->child->anotacao, "int") == 0){
+            printf("\t%%%d = sitofp i32 %%%d to double\n", count_temp_vars, var1);
+            var1 = count_temp_vars;
+            count_temp_vars++;
+        }
+        if(strcmp(atual->child->brother->anotacao, "int") == 0){
+            printf("\t%%%d = sitofp i32 %%%d to double\n", count_temp_vars, var2);
+            var2 = count_temp_vars;
+            count_temp_vars++;
+        }
+        printf("\t%%%d = fashr double %%%d, %%%d\n", count_temp_vars, var1, var2);
+        count_temp_vars++;
+    }
+}
+
+
 void function_if(node *atual){
     node *first = atual->child->brother;
     while(strcmp(first->Type, "NULL") == 0){
         first = first->brother;
     }
     node *second = first->brother;
+
     while(strcmp(second->Type, "NULL") == 0){
         second = second->brother;
     }
@@ -2322,33 +2384,6 @@ void function_while(node *atual){
     
 }
 
-void function_dowhile(node *atual){
-    node *first = atual->child;
-    while(strcmp(first->Type, "NULL") == 0){
-        first = first->brother;
-    }
-    node *second = first->brother;
-    while(strcmp(second->Type, "NULL") == 0){
-        second = second->brother;
-    }
-
-    int aux_count_label_dowhile = count_label_dowhile;
-    count_label_dowhile++;
-
-    printf("\tbr label %%label.work.dowhile%d\n", aux_count_label_dowhile);
-    printf("label.entry.dowhile%d:       ;it's dowhile \n", aux_count_label_dowhile);
-    code_llvm(second);
-    printf("\t%%%d = icmp eq i1 %%%d, 1\n", count_temp_vars, count_temp_vars-1);
-    printf("\tbr i1 %%%d, label %%label.work.dowhile%d, label %%label.finished.dowhile%d\n", count_temp_vars, aux_count_label_dowhile, aux_count_label_dowhile);
-    count_temp_vars++;
-    
-    printf("label.work.dowhile%d:       ;it's dowhile\n", aux_count_label_dowhile);
-    code_llvm(first);
-    printf("\tbr label %%label.entry.dowhile%d\n", aux_count_label_dowhile);
-    
-    printf("label.finished.dowhile%d:\n", aux_count_label_dowhile);
-    
-}
 
 void function_return(node *atual){
     if(atual->child == NULL){
@@ -2718,6 +2753,33 @@ void code_llvm(node *atual){
         code_llvm(atual->child);
         function_or(atual);
     }
+    else if(strcmp(atual->Type, "Xor") == 0){
+        aux1 = atual->child;
+        code_llvm(aux1);
+        int var1 = count_temp_vars-1;
+        aux1 = atual->child->brother;
+        code_llvm(aux1);
+        int var2 = count_temp_vars-1;
+        function_xor(atual, var1, var2);
+    }
+    else if(strcmp(atual->Type, "Lshift") == 0){
+        aux1 = atual->child;
+        code_llvm(aux1);
+        int var1 = count_temp_vars-1;
+        aux1 = atual->child->brother;
+        code_llvm(aux1);
+        int var2 = count_temp_vars-1;
+        function_lshift(atual, var1, var2);
+    }
+    else if(strcmp(atual->Type, "Rshift") == 0){
+        aux1 = atual->child;
+        code_llvm(aux1);
+        int var1 = count_temp_vars-1;
+        aux1 = atual->child->brother;
+        code_llvm(aux1);
+        int var2 = count_temp_vars-1;
+        function_rshift(atual, var1, var2);
+    }
     else if(strcmp(atual->Type, "Eq") == 0){
         aux1 = atual->child;
         code_llvm(aux1);
@@ -2728,7 +2790,7 @@ void code_llvm(node *atual){
 
         function_eq(atual, var1, var2);
     }
-    else if(strcmp(atual->Type, "Neq") == 0){
+    else if(strcmp(atual->Type, "Ne") == 0){
         aux1 = atual->child;
         code_llvm(aux1);
         int var1 = count_temp_vars-1;
@@ -2758,7 +2820,7 @@ void code_llvm(node *atual){
 
         function_gt(atual, var1, var2);
     }
-    else if(strcmp(atual->Type, "Leq") == 0){
+    else if(strcmp(atual->Type, "Le") == 0){
         aux1 = atual->child;
         code_llvm(aux1);
         int var1 = count_temp_vars-1;
@@ -2768,7 +2830,7 @@ void code_llvm(node *atual){
 
         function_leq(atual, var1, var2);
     }
-    else if(strcmp(atual->Type, "Geq") == 0){
+    else if(strcmp(atual->Type, "Ge") == 0){
         aux1 = atual->child;
         code_llvm(aux1);
         int var1 = count_temp_vars-1;
@@ -2791,9 +2853,6 @@ void code_llvm(node *atual){
     }
     else if(strcmp(atual->Type, "While") == 0){
         function_while(atual);
-    }
-    else if(strcmp(atual->Type, "DoWhile") == 0){
-        function_dowhile(atual);
     }
     else if(strcmp(atual->Type, "Return") == 0){
         founded_return = 1;
