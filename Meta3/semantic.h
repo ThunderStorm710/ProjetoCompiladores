@@ -17,24 +17,24 @@ typedef struct node{
     struct node *brother;
     struct node *child;
     char *Type;
-    char *value;
-    int line, column;
-    char *anoted;
-    int n_params;
-    int to_anote;
+    char *valor;
+    int linha, coluna;
+    char *anotacao;
+    int numeroParametros;
+    int aAnotar;
     struct _param_list *params;
 } node;
 
 /*Declared functions*/
-void astreePrint(node *Node, int numPontos);
+void imprimirArvore(node *Node, int numPontos);
 
-void astreeClean(node *Node);
+void limparArvore(node *Node);
 
 token *criaToken(char *valor, int linha, int coluna);
 
 void libertaToken(token *t);
 
-node *criaNode(char *Type, char *value, int line, int column);
+node *criaNode(char *Type, char *valor, int linha, int coluna);
 
 int countBlock(node *Node);
 
@@ -44,20 +44,19 @@ void addBrother(node *Node, node *newNodeBrother);
 
 void addChild(node *node1, node *node2);
 
-
 typedef struct _var_list {
-    int line, colunm;
+    int linha, coluna;
     char *name;
     char *type;
     int flag; //indica se é param ou não (1 se for) (2 se nao for para imprimir)
     int function; //indica se é funçao ou nao
-    int n_params; //se for function tem o numero de parametros
-    struct _param_list *paramTypes;
+    int numeroParametros; //se for function tem o numero de parametros
+    struct _param_list *parametroTipos;
     struct _var_list *next;
 } var_list;
 
 typedef struct _param_list {
-    int line, colunm;
+    int linha, coluna;
     char *id;
     char *type;
     struct _param_list *next;
@@ -71,14 +70,8 @@ typedef struct _sym_table {
     struct _sym_table *next;
 } sym_table;
 
-typedef struct _strlit_list {
-    char *value;
-    char *type;
-    struct _strlit_list *next;
-} strlit_list;
-
-extern sym_table *global_table, *local_table;
-extern int nErrorsSemantic;
+extern sym_table *tabelaGlobal, *tabelaLocal;
+extern int errosSemantica;
 
 void limparParametros(param_list *param);
 
@@ -90,7 +83,7 @@ void limparTabelas(sym_table *global, sym_table *local);
 
 void criarTabelaSemantica(node *atual);
 
-void adicionarATabelaLocal(sym_table *local_table, sym_table *element);
+void adicionarATabelaLocal(sym_table *tabelaLocal, sym_table *element);
 
 void imprimirTabelaGlobal(sym_table *atual);
 
@@ -110,7 +103,7 @@ sym_table *criarTabela(char *name, char *type);
 
 char *procurarVariavel(param_list *params, char *var_name);
 
-int procurarFuncao(sym_table *table_global, param_list *aux_paramTypes, int count_params, char *name);
+int procurarFuncao(sym_table *table_global, param_list *aux_parametroTipos, int count_params, char *name);
 
 void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual);
 

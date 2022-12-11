@@ -22,8 +22,8 @@ int numErrors=0;
 int aspaPos, barraPos, commentColuna, commentLinha;
 
 int yylex_destroy();
-sym_table *global_table, *local_table;
-int nErrorsSemantic;
+sym_table *tabelaGlobal, *tabelaLocal;
+int errosSemantica;
 
 extern node* head;
 %}
@@ -179,22 +179,21 @@ RESERVED                                   (private|goto|do|synchronized|package
 int main(int argc,char* argv[]){
     if (argc == 1){
         //imprimir igual a flag -t (excepto a arvore de sintaxe abstrata) mais arvore de sintaxe abstrata anotada
-
         getYacc = true;
         getPrintEronly = true;
-        global_table = NULL;
-        local_table = NULL;
+        tabelaGlobal = NULL;
+        tabelaLocal = NULL;
         yyparse();
 
         if(numErrors == 0){
-            nErrorsSemantic == 0;
+            errosSemantica = 0;
             criarTabelaSemantica(head);
-            if (nErrorsSemantic == 0){
-                imprimirTabelaGlobal(global_table);
-                imprimirTabelasLocais(local_table);
+            if (errosSemantica == 0){
+                imprimirTabelaGlobal(tabelaGlobal);
+                imprimirTabelasLocais(tabelaLocal);
                 imprimirArvoreAnotada(head, 0);
             }
-            limparTabelas(global_table, local_table);
+            limparTabelas(tabelaGlobal, tabelaLocal);
         }
     
     } else if (argc == 2){
@@ -225,28 +224,27 @@ int main(int argc,char* argv[]){
             getPrintEronly = true;
 			yyparse();
 			if(numErrors == 0){
-				astreePrint(head, 0);
+				imprimirArvore(head, 0);
 			}
 		}else if(strcmp(argv[1],"-s")==0){
             //imprimir igual a flag -t (excepto a arvore de sintaxe abstrata) mais arvore de sintaxe abstrata anotada
-
             getYacc = true;
             getPrintEronly = true;
-            global_table = NULL;
-			local_table = NULL;
+            tabelaGlobal = NULL;
+			tabelaLocal = NULL;
 			yyparse();
 
 			if(numErrors == 0){
                 criarTabelaSemantica(head);
-                imprimirTabelaGlobal(global_table);
-                imprimirTabelasLocais(local_table);
+                imprimirTabelaGlobal(tabelaGlobal);
+                imprimirTabelasLocais(tabelaLocal);
                 imprimirArvoreAnotada(head, 0);
-                limparTabelas(global_table, local_table);
+                limparTabelas(tabelaGlobal, tabelaLocal);
 			}
 		}
     }
 
-    astreeClean(head);
+    limparArvore(head);
     yylex_destroy();
 
     return 0;
