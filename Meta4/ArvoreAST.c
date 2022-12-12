@@ -1,13 +1,5 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <math.h>
-#include <float.h>
-#include <limits.h>
-#include <string.h>
-#include "semantic.h"
 
-/* -------- TOKEN --------- */
+#include "semantic.h"
 
 token *criaToken(char *valor, int linha, int coluna) {
     token *novoToken = (token *) malloc(sizeof(token));
@@ -30,11 +22,9 @@ void libertaToken(token *t) {
     t = NULL;
 }
 
-/* ++++++++++ AS TREE ++++++++++ */
-
-node *criaNode(char *Type, char *valor, int linha, int coluna) {
+node *criaNode(char *tipoNo, char *valor, int linha, int coluna) {
     node *newNode = (node *) malloc(sizeof(node));
-    newNode->Type = (char *) strdup(Type);
+    newNode->tipoNo = (char *) strdup(tipoNo);
     if (valor != NULL) {
         newNode->valor = (char *) strdup(valor);
     } else {
@@ -43,7 +33,7 @@ node *criaNode(char *Type, char *valor, int linha, int coluna) {
     newNode->anotacao = NULL;
     newNode->params = NULL;
     newNode->numeroParametros = -1;
-    newNode->to_anote = 1;
+    newNode->aAnotar = 1;
     newNode->linha = linha;
     newNode->coluna = coluna;
     newNode->child = NULL;
@@ -84,7 +74,7 @@ int countBlock(node *Node) {
     }
 
     while (Node->brother != NULL) {
-        if (strcmp((Node->brother)->Type, "NULL") != 0) {
+        if (strcmp((Node->brother)->tipoNo, "NULL") != 0) {
             count++;
         }
         Node = Node->brother;
@@ -98,7 +88,7 @@ void joinType(node *nodeType, node *nodeX) {
     node *nodeAux = nodeX;
 
     while (nodeAux != NULL) {
-        newNode = criaNode(nodeType->Type, NULL, 0, 0);
+        newNode = criaNode(nodeType->tipoNo, NULL, 0, 0);
         newNode->brother = nodeAux->child;
         nodeAux->child = newNode;
         nodeAux = nodeAux->brother;
@@ -111,21 +101,21 @@ void imprimirArvore(node *Node, int numPontos) {
         return;
     }
 
-    if (strcmp(Node->Type, "NULL") == 0) {
+    if (strcmp(Node->tipoNo, "NULL") == 0) {
         imprimirArvore(Node->brother, numPontos);
         return;
     }
 
     int i;
-    if (strcmp(Node->Type, "NULL") != 0) {
+    if (strcmp(Node->tipoNo, "NULL") != 0) {
         for (i = 0; i < numPontos; i++) {
             printf("..");
         }
 
         if (Node->valor != NULL) {
-            printf("%s(%s)\n", Node->Type, Node->valor);
+            printf("%s(%s)\n", Node->tipoNo, Node->valor);
         } else {
-            printf("%s\n", Node->Type);
+            printf("%s\n", Node->tipoNo);
         }
     }
 
@@ -143,9 +133,9 @@ void limparArvore(node *Node) {
         Node->valor = NULL;
     }
 
-    if (Node->Type != NULL) {
-        free(Node->Type);
-        Node->Type = NULL;
+    if (Node->tipoNo != NULL) {
+        free(Node->tipoNo);
+        Node->tipoNo = NULL;
     }
 
     limparArvore(Node->child);
@@ -156,4 +146,3 @@ void limparArvore(node *Node) {
     free(Node);
     Node = NULL;
 }
-

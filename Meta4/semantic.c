@@ -1,105 +1,232 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
-#include <limits.h>
-#include <stdarg.h>
-#include <float.h>
 #include "semantic.h"
 
-/* ------------------ SEMANTICS ---------------------- */
+tabelaSimbolos *criarTabela(char *nome, char *tipo) {
+    tabelaSimbolos *backUp = (tabelaSimbolos *) malloc(sizeof(tabelaSimbolos));
+    backUp->tableName = (char *) strdup(nome);
+    backUp->tableType = (char *) strdup(tipo);
 
-/* TABLES */
+    backUp->vars = NULL;
+    backUp->params = NULL;
+    backUp->seguinte = NULL;
+    return backUp;
+} 
 
-void limparParametros(param_list *param) {
-    if (param == NULL) {
+
+void criarTabelaSemantica(node *atual) {
+    char *backUp;
+    int error;
+    tabelaSimbolos *backUpTable;
+    listaVariaveis *backUpVar, *backUpVarLocal;
+    listaParametros *backUpParam, *backUpParamPrint;
+    node *backUp1, *backUp2, *backUp3, *backUp4, *backUp5, *backUp6, *backUpProgram;
+    int count_params;
+
+    errosSemantica = 0;
+
+    if (atual == NULL) {
         return;
     }
 
-    if (param->type != NULL) {
-        free(param->type);
-        param->type = NULL;
-    }
-    if (param->id != NULL) {
-        free(param->id);
-        param->id = NULL;
-    }
+    if (strcmp(atual->tipoNo, "Program") == 0) { //Fazemos primeiro a tabela global toda
+        backUp1 = atual->child; //ID
 
-    limparParametros(param->next);
+        tabelaGlobal = criarTabela(backUp1->valor, "Class");
 
-    free(param);
-    param = NULL;
+        backUpProgram = backUp1->brother; //FieldDecl ou MethodDecl
+        atual = backUp1->brother; //FieldDecl ou MethodDecl
+
+        while (atual != NULL) { //Fazer primeiro a tabela global
+            if (strcmp(atual->tipoNo, "FieldDecl") == 0) {
+                backUp1 = atual->child; //tipo - integer/boolean/double
+                backUp2 = backUp1->brother; //nome - NOME
+                backUpVar = criarVariavel(backUp2->valor, alterarTipo(backUp1->tipoNo));
+
+                if (procuraTipoVariavel(tabelaGlobal, NULL, backUp2->valor) != NULL) {
+                    errosSemantica = 1;
+                    printf("Line %d, col %d: Symbol %s already defined\n", backUp2->linha, backUp2->coluna, backUp2->valor);
+                    limparVariaveis(backUpVar);
+
+                } else {
+                    if (tabelaGlobal->vars == NULL) {
+                        tabelaGlobal->vars = backUpVar;
+
+                    } else {
+                        adicionarVariavel(tabelaGlobal->vars, backUpVar);
+                    }
+                }
+            }
+            if (strcmp(atual->tipoNo, "MethodDecl") == 0) {
+                backUp1 = atual->child; //MethodHeader
+                count_params = 0;
+                while (backUp1 != NULL) {
+                    if (strcmp(backUp1->tipoNo, "MethodHeader") == 0) {
+                        backUp2 = backUp1->child; //supostamente o tipo
+                        backUp3 = backUp2->brother; //supostamente id
+
+                        backUpVar = criarVariavel(backUp3->valor, alterarTipo(backUp2->tipoNo));
+
+                        backUp4 = backUp3->brother; //MethodParams
+                        backUp5 = backUp4->child; //ou e param ou nada
+                        while (backUp5 != NULL) { 
+                            if (strcmp(backUp5->tipoNo, "NULL") != 0) {
+                                count_params++;
+                                //adicionar o backUpVar a tabela global
+                                backUpParam = CriarParametroTipo(alterarTipo(backUp5->child->tipoNo),
+                                                             (backUp5->child)->brother->valor);
+
+                                backUp = procurarVariavel(backUpVar->parametroTipos, (backUp5->child)->brother->valor);
+                                if (backUp != NULL) {
+                                    errosSemantica = 1;
+                                    printf("Line %d, col %d: Symbol %s already defined\n", (backUp5->child)->brother->linha,
+                                           (backUp5->child)->brother->coluna, (backUp5->child)->brother->valor);
+                                }
+
+                                if (backUpVar->parametroTipos == NULL) {
+                                    backUpVar->parametroTipos = backUpParam;
+
+                                } else {
+                                    adicionarParametro(backUpVar->parametroTipos, backUpParam);
+                                }
+                            }
+                            backUp5 = backUp5->brother;
+                        }
+
+                        backUpVar->isFunction = true; //e uma funcao
+                        backUpVar->numeroParametros = count_params;
+                        if (procurarFuncao(tabelaGlobal, backUpVar->parametroTipos, count_params, backUp3->valor) == 1) {
+                            errosSemantica = 1;
+                            printf("Line %d, col %d: Symbol %s(", backUp3->linha, backUp3->coluna, backUp3->valor);
+                            backUpParamPrint = backUpVar->parametroTipos;
+                            while (backUpParamPrint != NULL) {
+                                printf("%s", backUpParamPrint->tipo);
+                                if (backUpParamPrint->seguinte != NULL) {
+                                    printf(",");
+                                }
+                                backUpParamPrint = backUpParamPrint->seguinte;
+                            }
+                            printf(") already defined\n");
+                            backUp3->aAnotar = 0;
+                            limparVariaveis(backUpVar);
+
+                        } else {
+                            if (tabelaGlobal->vars == NULL) {
+                                tabelaGlobal->vars = backUpVar;
+
+                            } else {
+                                adicionarVariavel(tabelaGlobal->vars, backUpVar);
+                            }
+                        }
+                    }
+
+                    backUp1 = backUp1->brother; //Header ou Body
+                }
+            }
+
+            atual = atual->brother;
+        }
+
+        atual = backUpProgram;
+
+        while (atual != NULL) { //Depois fazemos as tabelas locais
+            if (strcmp(atual->tipoNo, "MethodDecl") == 0) {
+                error = 0;
+                backUp1 = atual->child; //MethodHeader
+                while (backUp1 != NULL) {
+                    if (strcmp(backUp1->tipoNo, "MethodHeader") == 0) {
+                        backUp2 = backUp1->child; //supostamente o tipo
+                        backUp3 = backUp2->brother; //supostamente o id
+
+                        if (backUp3->aAnotar == 0) {
+                            error = 1;
+                            break;
+                        }
+
+                        backUpTable = criarTabela(backUp3->valor, "Method");
+
+                        backUpVar = criarVariavel("return", alterarTipo(backUp2->tipoNo));
+                        backUpVar->isParametro = 0;
+                        backUpTable->vars = backUpVar; //para a tabela local
+
+                        backUp4 = backUp3->brother; //MethodParams
+                        backUp5 = backUp4->child; //devera ser um param ou nada
+                        while (backUp5 != NULL) {
+                            if (strcmp(backUp5->tipoNo, "NULL") != 0) {
+                                //adicionar o backUpVar a tabela global
+                                backUpParam = CriarParametroTipo(alterarTipo(backUp5->child->tipoNo),
+                                                             (backUp5->child)->brother->valor);
+
+                                backUp = procurarVariavel(backUpVar->parametroTipos, (backUp5->child)->brother->valor);
+
+                                if (backUpVar->parametroTipos == NULL) {
+                                    backUpVar->parametroTipos = backUpParam;
+
+                                } else {
+                                    adicionarParametro(backUpVar->parametroTipos, backUpParam);
+                                }
+
+                                //adicionar a tabela local
+                                backUp6 = (backUp5->child)->brother; //id do parametro
+                                backUpVarLocal = criarVariavel(backUp6->valor, alterarTipo(backUp5->child->tipoNo));
+                                if (backUp != NULL) {
+                                    backUpVarLocal->isParametro = 2; //como e repetido, nao imprimir
+
+                                } else {
+                                    backUpVarLocal->isParametro = 1; //e uma variavel
+                                }
+                                backUpTable->params = backUpVar->parametroTipos;
+                                adicionarVariavel(backUpTable->vars, backUpVarLocal);
+                            }
+                            backUp5 = backUp5->brother;
+                        }
+                    }
+                    if (strcmp(backUp1->tipoNo, "MethodBody") == 0) {
+                        backUp2 = backUp1->child;
+                        while (backUp2 != NULL) {
+                            if (strcmp(backUp2->tipoNo, "VarDecl") == 0) {
+                                backUp3 = backUp2->child;
+                                backUp4 = backUp3->brother;
+
+                                if (procuraTipoVariavel(NULL, backUpTable, backUp4->valor) != NULL) {
+                                    errosSemantica = 1;
+                                    printf("Line %d, col %d: Symbol %s already defined\n", backUp4->linha, backUp4->coluna,
+                                           backUp4->valor);
+
+                                } else {
+                                    backUpVar = criarVariavel(backUp4->valor, alterarTipo(backUp3->tipoNo));
+                                    backUpVar->isParametro = 0;
+                                    adicionarVariavel(backUpTable->vars, backUpVar); //Adicionar a tabela local
+                                }
+
+                            } else {
+                                if (!(strcmp(backUp2->tipoNo, "NULL") == 0)) {
+                                    anotarArvore(tabelaGlobal, backUpTable, backUp2);
+                                }
+                            }
+
+                            backUp2 = backUp2->brother;
+                        }
+                    }
+
+                    backUp1 = backUp1->brother; //Header ou Body
+                }
+
+                if (error != 1) {
+                    if (tabelaLocal == NULL) {
+                        tabelaLocal = backUpTable;
+
+                    } else {
+                        adicionarATabelaLocal(tabelaLocal, backUpTable);
+                    }
+                }
+            }
+
+            atual = atual->brother;
+        }
+    }
 }
 
-void limparVariaveis(var_list *var) {
-    if (var == NULL) {
-        return;
-    }
 
-    if (var->type != NULL) {
-        free(var->type);
-        var->type = NULL;
-    }
-    if (var->name != NULL) {
-        free(var->name);
-        var->name = NULL;
-    }
-
-    limparParametros(var->parametroTipos);
-    limparVariaveis(var->next);
-
-    free(var);
-    var = NULL;
-}
-
-void limparTabLocais(sym_table *local) {
-    if (local == NULL) {
-        return;
-    }
-
-    if (local->tableName != NULL) {
-        free(local->tableName);
-        local->tableName = NULL;
-    }
-    if (local->tableType != NULL) {
-        free(local->tableType);
-        local->tableType = NULL;
-    }
-
-    if (local->params != NULL) {
-        limparParametros(local->params->next);
-        if (local->params->type != NULL) {
-            free(local->params->type);
-            local->params->type = NULL;
-        }
-        if (local->params->id != NULL) {
-            free(local->params->id);
-            local->params->id = NULL;
-        }
-        free(local->params);
-        local->params = NULL;
-    }
-    if (local->vars != NULL) {
-        limparVariaveis(local->vars->next);
-        if (local->vars->type != NULL) {
-            free(local->vars->type);
-            local->vars->type = NULL;
-        }
-        if (local->vars->name != NULL) {
-            free(local->vars->name);
-            local->vars->name = NULL;
-        }
-        free(local->vars);
-        local->vars = NULL;
-    }
-
-    limparTabLocais(local->next);
-
-    free(local);
-    local = NULL;
-}
-
-void limparTabelas(sym_table *global, sym_table *local) {
+void limparTabelas(tabelaSimbolos *global, tabelaSimbolos *local) {
     if (global != NULL) {
         if (global->tableName != NULL) {
             free(global->tableName);
@@ -121,490 +248,351 @@ void limparTabelas(sym_table *global, sym_table *local) {
     }
 }
 
-void imprimirTabelaGlobal(sym_table *atual) {
-    var_list *auxV = atual->vars;
-    param_list *auxP;
-
-    printf("===== %s %s Symbol Table =====\n", atual->tableType, atual->tableName);
-    while (auxV != NULL) {
-        if (auxV->function == 1) {
-            auxP = auxV->parametroTipos;
-            printf("%s\t(", auxV->name);
-            while (auxP != NULL) {
-                printf("%s", auxP->type);
-                if (auxP->next != NULL) {
-                    printf(",");
-                }
-                auxP = auxP->next;
-            }
-            printf(")\t%s", auxV->type);
-
-        } else {
-            printf("%s\t\t%s", auxV->name, auxV->type);
-        }
-
-        printf("\n");
-
-        auxV = auxV->next;
+void limparTabLocais(tabelaSimbolos *tabelaLocal) {
+    if (tabelaLocal == NULL) {
+        return;
     }
-    printf("\n");
+
+    if (tabelaLocal->tableName != NULL) {
+        free(tabelaLocal->tableName);
+        tabelaLocal->tableName = NULL;
+    }
+    if (tabelaLocal->tableType != NULL) {
+        free(tabelaLocal->tableType);
+        tabelaLocal->tableType = NULL;
+    }
+
+    if (tabelaLocal->params != NULL) {
+        limparParametros(tabelaLocal->params->seguinte);
+        if (tabelaLocal->params->tipo != NULL) {
+            free(tabelaLocal->params->tipo);
+            tabelaLocal->params->tipo = NULL;
+        }
+        if (tabelaLocal->params->id != NULL) {
+            free(tabelaLocal->params->id);
+            tabelaLocal->params->id = NULL;
+        }
+        free(tabelaLocal->params);
+        tabelaLocal->params = NULL;
+    }
+    if (tabelaLocal->vars != NULL) {
+        limparVariaveis(tabelaLocal->vars->seguinte);
+        if (tabelaLocal->vars->tipo != NULL) {
+            free(tabelaLocal->vars->tipo);
+            tabelaLocal->vars->tipo = NULL;
+        }
+        if (tabelaLocal->vars->nome != NULL) {
+            free(tabelaLocal->vars->nome);
+            tabelaLocal->vars->nome = NULL;
+        }
+        free(tabelaLocal->vars);
+        tabelaLocal->vars = NULL;
+    }
+
+    limparTabLocais(tabelaLocal->seguinte);
+
+    free(tabelaLocal);
+    tabelaLocal = NULL;
 }
 
-void imprimirTabelasLocais(sym_table *atual) {
-    sym_table *aux = atual;
-    var_list *auxV;
-    param_list *auxP;
+void adicionarATabelaLocal(tabelaSimbolos *table, tabelaSimbolos *element) {
+    tabelaSimbolos *backUp = table;
 
-    while (aux != NULL) {
-        auxV = aux->vars;
-        auxP = aux->params;
-        if (auxP != NULL) {
-            printf("===== %s %s(", aux->tableType, aux->tableName);
-            while (auxP != NULL) {
-                printf("%s", auxP->type);
-                if (auxP->next != NULL) {
-                    printf(",");
-                }
-                auxP = auxP->next;
-            }
-            printf(") Symbol Table =====\n");
-
-        } else {
-            printf("===== %s %s() Symbol Table =====\n", aux->tableType, aux->tableName);
-        }
-        while (auxV != NULL) {
-            if (auxV->flag == 2) {
-                //dont print, its repeated
-
-            } else if (auxV->flag == 1) {
-                printf("%s\t\t%s\t%s\n", auxV->name, auxV->type, "param");
-
-            } else {
-                printf("%s\t\t%s\n", auxV->name, auxV->type);
-            }
-
-            auxV = auxV->next;
-        }
-
-        printf("\n");
-
-        aux = aux->next;
-    }
-}
-
-void adicionarATabelaLocal(sym_table *table, sym_table *element) {
-    sym_table *aux = table;
-
-    if (aux == NULL) {
+    if (backUp == NULL) {
         table = element;
         return;
     }
 
-    while (aux->next != NULL) {
-        aux = aux->next;
+    while (backUp->seguinte != NULL) {
+        backUp = backUp->seguinte;
     }
 
-    aux->next = element;
+    backUp->seguinte = element;
 }
 
-param_list *CriarParametroTipo(char *type, char *id) {
-    param_list *new = (param_list *) malloc(sizeof(param_list));
-    new->type = (char *) strdup(type);
+void imprimirTabelaGlobal(tabelaSimbolos *atual) {
+    listaVariaveis *backUpV = atual->vars;
+    listaParametros *backUpP;
+
+    printf("===== %s %s Symbol Table =====\n", atual->tableType, atual->tableName);
+    while (backUpV != NULL) {
+        if (backUpV->isFunction) {
+            backUpP = backUpV->parametroTipos;
+            printf("%s\t(", backUpV->nome);
+            while (backUpP != NULL) {
+                printf("%s", backUpP->tipo);
+                if (backUpP->seguinte != NULL) {
+                    printf(",");
+                }
+                backUpP = backUpP->seguinte;
+            }
+            printf(")\t%s", backUpV->tipo);
+
+        } else {
+            printf("%s\t\t%s", backUpV->nome, backUpV->tipo);
+        }
+
+        printf("\n");
+
+        backUpV = backUpV->seguinte;
+    }
+    printf("\n");
+}
+
+void imprimirTabelasLocais(tabelaSimbolos *atual) {
+    tabelaSimbolos *backUp = atual;
+    listaVariaveis *backUpV;
+    listaParametros *backUpP;
+
+    while (backUp != NULL) {
+        backUpV = backUp->vars;
+        backUpP = backUp->params;
+        if (backUpP != NULL) {
+            printf("===== %s %s(", backUp->tableType, backUp->tableName);
+            while (backUpP != NULL) {
+                printf("%s", backUpP->tipo);
+                if (backUpP->seguinte != NULL) {
+                    printf(",");
+                }
+                backUpP = backUpP->seguinte;
+            }
+            printf(") Symbol Table =====\n");
+
+        } else {
+            printf("===== %s %s() Symbol Table =====\n", backUp->tableType, backUp->tableName);
+        }
+        while (backUpV != NULL) {
+            if (backUpV->isParametro == 2) {
+
+            } else if (backUpV->isParametro == 1) {
+                printf("%s\t\t%s\t%s\n", backUpV->nome, backUpV->tipo, "param");
+
+            } else {
+                printf("%s\t\t%s\n", backUpV->nome, backUpV->tipo);
+            }
+
+            backUpV = backUpV->seguinte;
+        }
+
+        printf("\n");
+
+        backUp = backUp->seguinte;
+    }
+}
+
+void limparParametros(listaParametros *parametro) {
+    if (parametro == NULL) {
+        return;
+    }
+
+    if (parametro->tipo != NULL) {
+        free(parametro->tipo);
+        parametro->tipo = NULL;
+    }
+    if (parametro->id != NULL) {
+        free(parametro->id);
+        parametro->id = NULL;
+    }
+
+    limparParametros(parametro->seguinte);
+
+    free(parametro);
+    parametro = NULL;
+}
+
+listaParametros *CriarParametroTipo(char *tipo, char *id) {
+    listaParametros *new = (listaParametros *) malloc(sizeof(listaParametros));
+    new->tipo = (char *) strdup(tipo);
     new->id = (char *) strdup(id);
-    new->next = NULL;
+    new->seguinte = NULL;
     return new;
 }
 
-void adicionarParametro(param_list *paramList, param_list *new) {
-    param_list *aux = paramList;
+void adicionarParametro(listaParametros *paramList, listaParametros *new) {
+    listaParametros *backUp = paramList;
 
-    if (aux == NULL) {
+    if (backUp == NULL) {
         paramList = new;
         return;
     }
 
-    while (aux->next != NULL) {
-        aux = aux->next;
+    while (backUp->seguinte != NULL) {
+        backUp = backUp->seguinte;
     }
 
-    aux->next = new;
+    backUp->seguinte = new;
 }
 
-var_list *criarVariavel(char *name, char *type) {
-    var_list *new = (var_list *) malloc(sizeof(var_list));
-    new->name = (char *) strdup(name);
-    new->type = (char *) strdup(type);
-    new->function = 0;
-    new->flag = 0;
+listaVariaveis *criarVariavel(char *nome, char *tipo) {
+    listaVariaveis *new = (listaVariaveis *) malloc(sizeof(listaVariaveis));
+    new->nome = (char *) strdup(nome);
+    new->tipo = (char *) strdup(tipo);
+    new->isFunction = false;
+    new->isParametro = 0;
     new->numeroParametros = 0;
     new->parametroTipos = NULL;
-    new->next = NULL;
+    new->seguinte = NULL;
     return new;
 }
 
-void adicionarVariavel(var_list *varList, var_list *new) {
-    var_list *aux = varList;
+void adicionarVariavel(listaVariaveis *varList, listaVariaveis *new) {
+    listaVariaveis *backUp = varList;
 
-    if (aux == NULL) {
+    if (backUp == NULL) {
         varList = new;
         return;
     }
 
-    while (aux->next != NULL) {
-        aux = aux->next;
+    while (backUp->seguinte != NULL) {
+        backUp = backUp->seguinte;
     }
 
-    aux->next = new;
+    backUp->seguinte = new;
 }
 
-sym_table *criarTabela(char *name, char *type) {
-    sym_table *aux = (sym_table *) malloc(sizeof(sym_table));
-    aux->tableName = (char *) strdup(name);
-    aux->tableType = (char *) strdup(type);
-
-    aux->vars = NULL;
-    aux->params = NULL;
-    aux->next = NULL;
-    return aux;
-}
-
-char *alterarTipo(char *Type) {
-
-    if (strcmp(Type, "Int") == 0) {
-        Type = "int";
-        return Type;
-    }
-
-    if (strcmp(Type, "Double") == 0) {
-        Type = "double";
-        return Type;
-    }
-
-    if (strcmp(Type, "Bool") == 0) {
-        Type = "boolean";
-        return Type;
-    }
-
-    if (strcmp(Type, "Void") == 0) {
-        Type = "void";
-        return Type;
-    }
-
-    if (strcmp(Type, "StringArray") == 0) {
-        Type = "String[]";
-        return Type;
-    }
-
-    return Type;
-}
-
-void criarTabelaSemantica(node *atual) {
-    char *aux;
-    int error;
-    sym_table *auxTable;
-    var_list *auxVar, *auxVarLocal;
-    param_list *auxParam, *auxParamPrint;
-    node *aux1, *aux2, *aux3, *aux4, *aux5, *aux6, *auxProgram;
-    int count_params;
-
-    errosSemantica = 0;
-
-    if (atual == NULL) {
+void limparVariaveis(listaVariaveis *variavel) {
+    if (variavel == NULL) {
         return;
     }
 
-    if (strcmp(atual->Type, "Program") == 0) { //Fazemos primeiro a tabela global toda
-        aux1 = atual->child; //ID
-
-        tabelaGlobal = criarTabela(aux1->valor, "Class");
-
-        auxProgram = aux1->brother; //FieldDecl ou MethodDecl
-        atual = aux1->brother; //FieldDecl ou MethodDecl
-
-        while (atual != NULL) { //Fazemos primeiro a tabela global toda
-            if (strcmp(atual->Type, "FieldDecl") == 0) {
-                aux1 = atual->child; //TYPE - int/bool/double
-                aux2 = aux1->brother; //ID - NOME
-                auxVar = criarVariavel(aux2->valor, alterarTipo(aux1->Type));
-
-                if (procuraTipoVariavel(tabelaGlobal, NULL, aux2->valor) != NULL) {
-                    errosSemantica = 1;
-                    printf("Line %d, col %d: Symbol %s already defined\n", aux2->linha, aux2->coluna, aux2->valor);
-                    limparVariaveis(auxVar);
-
-                } else {
-                    if (tabelaGlobal->vars == NULL) {
-                        tabelaGlobal->vars = auxVar;
-
-                    } else {
-                        adicionarVariavel(tabelaGlobal->vars, auxVar);
-                    }
-                }
-            }
-            if (strcmp(atual->Type, "MethodDecl") == 0) {
-                aux1 = atual->child; //MethodHeader
-                count_params = 0;
-                while (aux1 != NULL) {
-                    if (strcmp(aux1->Type, "MethodHeader") == 0) {
-                        aux2 = aux1->child; //TYPE
-                        aux3 = aux2->brother; //ID
-
-                        auxVar = criarVariavel(aux3->valor, alterarTipo(aux2->Type)); //ADD TO GLOBAL
-
-                        aux4 = aux3->brother; //MethodParams
-                        aux5 = aux4->child; //ParamDecl ou nada
-                        while (aux5 != NULL) { //WHILE EXISTS ParamDecl's
-                            if (strcmp(aux5->Type, "NULL") != 0) {
-                                count_params++;
-                                //add to auxVar to tabelaGlobal
-                                auxParam = CriarParametroTipo(alterarTipo(aux5->child->Type),
-                                                             (aux5->child)->brother->valor);
-
-                                aux = procurarVariavel(auxVar->parametroTipos, (aux5->child)->brother->valor);
-                                if (aux != NULL) {
-                                    errosSemantica = 1;
-                                    printf("Line %d, col %d: Symbol %s already defined\n", (aux5->child)->brother->linha,
-                                           (aux5->child)->brother->coluna, (aux5->child)->brother->valor);
-                                }
-
-                                if (auxVar->parametroTipos == NULL) {
-                                    auxVar->parametroTipos = auxParam;
-
-                                } else {
-                                    adicionarParametro(auxVar->parametroTipos, auxParam);
-                                }
-                            }
-                            aux5 = aux5->brother;
-                        }
-
-                        auxVar->function = 1; //ITS FUNCTION
-                        auxVar->numeroParametros = count_params;
-                        if (procurarFuncao(tabelaGlobal, auxVar->parametroTipos, count_params, aux3->valor) == 1) {
-                            errosSemantica = 1;
-                            printf("Line %d, col %d: Symbol %s(", aux3->linha, aux3->coluna, aux3->valor);
-                            auxParamPrint = auxVar->parametroTipos;
-                            while (auxParamPrint != NULL) {
-                                printf("%s", auxParamPrint->type);
-                                if (auxParamPrint->next != NULL) {
-                                    printf(",");
-                                }
-                                auxParamPrint = auxParamPrint->next;
-                            }
-                            printf(") already defined\n");
-                            aux3->to_anote = 0;
-                            limparVariaveis(auxVar);
-
-                        } else {
-                            if (tabelaGlobal->vars == NULL) {
-                                tabelaGlobal->vars = auxVar;
-
-                            } else {
-                                adicionarVariavel(tabelaGlobal->vars, auxVar);
-                            }
-                        }
-                    }
-
-                    aux1 = aux1->brother; //MethodHeader ou MethodBody
-                }
-            }
-
-            atual = atual->brother;
-        }
-
-        atual = auxProgram;
-
-        while (atual != NULL) { //Depois fazemos as tabelas locais
-            if (strcmp(atual->Type, "MethodDecl") == 0) {
-                error = 0;
-                aux1 = atual->child; //MethodHeader
-                while (aux1 != NULL) {
-                    if (strcmp(aux1->Type, "MethodHeader") == 0) {
-                        aux2 = aux1->child; //TYPE
-                        aux3 = aux2->brother; //ID
-
-                        if (aux3->to_anote == 0) {
-                            error = 1;
-                            break;
-                        }
-
-                        auxTable = criarTabela(aux3->valor, "Method");
-
-                        auxVar = criarVariavel("return", alterarTipo(aux2->Type)); //CREATE VAR TYPE
-                        auxVar->flag = 0;
-                        auxTable->vars = auxVar; //TO LOCAL TABLE
-
-                        aux4 = aux3->brother; //MethodParams
-                        aux5 = aux4->child; //ParamDecl ou nada
-                        while (aux5 != NULL) { //WHILE EXISTS ParamDecl's
-                            if (strcmp(aux5->Type, "NULL") != 0) {
-                                //add to auxVar to tabelaGlobal
-                                auxParam = CriarParametroTipo(alterarTipo(aux5->child->Type),
-                                                             (aux5->child)->brother->valor);
-
-                                aux = procurarVariavel(auxVar->parametroTipos, (aux5->child)->brother->valor);
-
-                                if (auxVar->parametroTipos == NULL) {
-                                    auxVar->parametroTipos = auxParam;
-
-                                } else {
-                                    adicionarParametro(auxVar->parametroTipos, auxParam);
-                                }
-
-                                //add to tabelaLocal
-                                aux6 = (aux5->child)->brother; //ID OF ParamDecl
-                                auxVarLocal = criarVariavel(aux6->valor, alterarTipo(aux5->child->Type));
-                                if (aux != NULL) {
-                                    auxVarLocal->flag = 2; //DONT PRINT, ITS REPEATED
-
-                                } else {
-                                    auxVarLocal->flag = 1; //ITS VAR
-                                }
-                                auxTable->params = auxVar->parametroTipos;
-                                adicionarVariavel(auxTable->vars, auxVarLocal);
-                            }
-                            aux5 = aux5->brother;
-                        }
-                    }
-                    if (strcmp(aux1->Type, "MethodBody") == 0) {
-                        aux2 = aux1->child;
-                        while (aux2 != NULL) {
-                            if (strcmp(aux2->Type, "VarDecl") == 0) {
-                                aux3 = aux2->child;
-                                aux4 = aux3->brother;
-
-                                if (procuraTipoVariavel(NULL, auxTable, aux4->valor) != NULL) {
-                                    errosSemantica = 1;
-                                    printf("Line %d, col %d: Symbol %s already defined\n", aux4->linha, aux4->coluna,
-                                           aux4->valor);
-
-                                } else {
-                                    auxVar = criarVariavel(aux4->valor, alterarTipo(aux3->Type));
-                                    auxVar->flag = 0;
-                                    adicionarVariavel(auxTable->vars, auxVar); //TO LOCAL TABLE
-                                }
-
-                            } else {
-                                if (!(strcmp(aux2->Type, "NULL") == 0)) {
-                                    anotarArvore(tabelaGlobal, auxTable, aux2);
-                                }
-                            }
-
-                            aux2 = aux2->brother;
-                        }
-                    }
-
-                    aux1 = aux1->brother; //MethodHeader ou MethodBody
-                }
-
-                if (error != 1) {
-                    if (tabelaLocal == NULL) {
-                        tabelaLocal = auxTable;
-
-                    } else {
-                        adicionarATabelaLocal(tabelaLocal, auxTable); //ADD TO LOCAL TABLE
-                    }
-                }
-            }
-
-            atual = atual->brother;
-        }
+    if (variavel->tipo != NULL) {
+        free(variavel->tipo);
+        variavel->tipo = NULL;
     }
+    if (variavel->nome != NULL) {
+        free(variavel->nome);
+        variavel->nome = NULL;
+    }
+
+    limparParametros(variavel->parametroTipos);
+    limparVariaveis(variavel->seguinte);
+
+    free(variavel);
+    variavel = NULL;
 }
 
-/* anotacao AST */
+char *alterarTipo(char *tipoNo) {
 
-char *procurarVariavel(param_list *params, char *var_name) {
+    if (strcmp(tipoNo, "Int") == 0) {
+        tipoNo = "int";
+        return tipoNo;
+    }
+
+    if (strcmp(tipoNo, "Double") == 0) {
+        tipoNo = "double";
+        return tipoNo;
+    }
+
+    if (strcmp(tipoNo, "Bool") == 0) {
+        tipoNo = "boolean";
+        return tipoNo;
+    }
+
+    if (strcmp(tipoNo, "Void") == 0) {
+        tipoNo = "void";
+        return tipoNo;
+    }
+
+    if (strcmp(tipoNo, "StringArray") == 0) {
+        tipoNo = "String[]";
+        return tipoNo;
+    }
+
+    return tipoNo;
+}
+
+char *procurarVariavel(listaParametros *params, char *var_name) {
     if (params == NULL) {
         return NULL;
     }
 
-    param_list *auxP = params;
+    listaParametros *backUpP = params;
 
-    while (auxP != NULL) {
-        if (strcmp(auxP->id, var_name) == 0) {
-            return auxP->type;
+    while (backUpP != NULL) {
+        if (strcmp(backUpP->id, var_name) == 0) {
+            return backUpP->tipo;
         }
-        auxP = auxP->next;
+        backUpP = backUpP->seguinte;
     }
 
     return NULL;
 }
 
-int procurarFuncao(sym_table *table_global, param_list *aux_parametroTipos, int count_params, char *name) {
-    var_list *aux_vars;
-    param_list *aux_params1, *aux_params2;
+int procurarFuncao(tabelaSimbolos *table_global, listaParametros *backUp_parametroTipos, int count_params, char *nome) {
+    listaVariaveis *backUp_vars;
+    listaParametros *backUp_params1, *backUp_params2;
     int count_equals = 0;
 
-    aux_vars = table_global->vars;
-    while (aux_vars != NULL) {
-        if (aux_vars->function == 1 && aux_vars->numeroParametros == count_params && strcmp(aux_vars->name, name) == 0) {
+    backUp_vars = table_global->vars;
+    while (backUp_vars != NULL) {
+        if (backUp_vars->isFunction && backUp_vars->numeroParametros == count_params && strcmp(backUp_vars->nome, nome) == 0) {
             count_equals = 0;
-            aux_params1 = aux_vars->parametroTipos;
-            aux_params2 = aux_parametroTipos;
-            while (aux_params1 != NULL) {
-                if (strcmp(aux_params1->type, aux_params2->type) == 0) {
+            backUp_params1 = backUp_vars->parametroTipos;
+            backUp_params2 = backUp_parametroTipos;
+            while (backUp_params1 != NULL) {
+                if (strcmp(backUp_params1->tipo, backUp_params2->tipo) == 0) {
                     count_equals++;
                 }
-                aux_params1 = aux_params1->next;
-                aux_params2 = aux_params2->next;
+                backUp_params1 = backUp_params1->seguinte;
+                backUp_params2 = backUp_params2->seguinte;
             }
             if (count_equals == count_params) {
                 return 1;
             }
         }
-        aux_vars = aux_vars->next;
+        backUp_vars = backUp_vars->seguinte;
     }
 
     return 0;
 }
 
-char *procurarTipoVariavelTabela(sym_table *table, char *var_name) {
+char *procurarTipoVariavelTabela(tabelaSimbolos *table, char *var_name) {
     if (table == NULL) {
         return NULL;
     }
 
-    var_list *auxV = table->vars;
+    listaVariaveis *backUpV = table->vars;
 
-    while (auxV != NULL) {
-        if (strcmp(auxV->name, var_name) == 0 && auxV->function != 1) {
-            return auxV->type;
+    while (backUpV != NULL) {
+        if (strcmp(backUpV->nome, var_name) == 0 && !backUpV->isFunction) {
+            return backUpV->tipo;
         }
-        auxV = auxV->next;
+        backUpV = backUpV->seguinte;
     }
 
     return NULL;
 }
 
-char *procuraTipoVariavel(sym_table *table_global, sym_table *table_local, char *var_name) {
-    char *aux = procurarTipoVariavelTabela(table_local, var_name);
-    if (aux != NULL) {
-        return aux;
+char *procuraTipoVariavel(tabelaSimbolos *table_global, tabelaSimbolos *table_local, char *var_name) {
+    char *backUp = procurarTipoVariavelTabela(table_local, var_name);
+    if (backUp != NULL) {
+        return backUp;
     }
-    aux = procurarTipoVariavelTabela(table_global, var_name);
-    if (aux != NULL) {
-        return aux;
+    backUp = procurarTipoVariavelTabela(table_global, var_name);
+    if (backUp != NULL) {
+        return backUp;
     }
     return NULL;
 }
 
-void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) {
-    char *aux;
-    param_list *aux_params, *final_params;
-    var_list *aux_vars;
+void anotarArvore(tabelaSimbolos *table_global, tabelaSimbolos *table_local, node *atual) {
+    char *backUp;
+    listaParametros *backUp_params, *final_params;
+    listaVariaveis *backUp_vars;
     int count_params, count_equals, count_all_equals, find_function;
-    node *aux1, *aux2, *aux3, *ant;
+    node *backUp1, *backUp2, *backUp3, *ant;
 
     if (atual == NULL) {
         return;
     }
 
-    if (strcmp(atual->Type, "NULL") == 0) {
+    if (strcmp(atual->tipoNo, "NULL") == 0) {
         return;
 
-    } else if (strcmp(atual->Type, "Id") == 0) {
-        aux = procuraTipoVariavel(table_global, table_local, atual->valor);
-        if (aux != NULL) {
-            atual->anotacao = aux;
+    } else if (strcmp(atual->tipoNo, "Id") == 0) {
+        backUp = procuraTipoVariavel(table_global, table_local, atual->valor);
+        if (backUp != NULL) {
+            atual->anotacao = backUp;
 
         } else {
             errosSemantica = 1;
@@ -612,164 +600,163 @@ void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) 
             atual->anotacao = "undef";
         }
 
-    } else if (strcmp(atual->Type, "If") == 0) {
-        aux1 = atual->child;
-        anotarArvore(table_global, table_local, aux1);
-        aux1 = aux1->brother;
+    } else if (strcmp(atual->tipoNo, "If") == 0) {
+        backUp1 = atual->child;
+        anotarArvore(table_global, table_local, backUp1);
+        backUp1 = backUp1->brother;
 
-        aux2 = atual->child;
-        if (aux2->anotacao != NULL && strcmp(aux2->anotacao, "boolean")) { //MUDAR OS <= E TIRAR ESTE NULL
+        backUp2 = atual->child;
+        if (backUp2->anotacao != NULL && strcmp(backUp2->anotacao, "boolean")) {
             errosSemantica = 1;
-            printf("Line %d, col %d: Incompatible type %s in if statement\n", aux2->linha, aux2->coluna, aux2->anotacao);
+            printf("Line %d, col %d: Incompatible tipo %s in if statement\n", backUp2->linha, backUp2->coluna, backUp2->anotacao);
         }
 
-        while (aux1 != NULL) {
-            anotarArvore(table_global, table_local, aux1);
-            aux1 = aux1->brother;
+        while (backUp1 != NULL) {
+            anotarArvore(table_global, table_local, backUp1);
+            backUp1 = backUp1->brother;
         }
-    } else if (strcmp(atual->Type, "Block") == 0) {
-        aux1 = atual->child;
-        while (aux1 != NULL) {
-            anotarArvore(table_global, table_local, aux1);
-            aux1 = aux1->brother;
+    } else if (strcmp(atual->tipoNo, "Block") == 0) {
+        backUp1 = atual->child;
+        while (backUp1 != NULL) {
+            anotarArvore(table_global, table_local, backUp1);
+            backUp1 = backUp1->brother;
         }
-    } else if (strcmp(atual->Type, "While") == 0) {
-        //dentro do while() só pode estar um boolit, gt, eq, get, le, lt, ne
-        aux1 = atual->child;
-        anotarArvore(table_global, table_local, aux1);
-        aux1 = aux1->brother;
+    } else if (strcmp(atual->tipoNo, "While") == 0) {
+        backUp1 = atual->child;
+        anotarArvore(table_global, table_local, backUp1);
+        backUp1 = backUp1->brother;
 
-        aux2 = atual->child;
-        if (strcmp(aux2->anotacao, "boolean")) {
+        backUp2 = atual->child;
+        if (strcmp(backUp2->anotacao, "boolean")) {
             errosSemantica = 1;
-            printf("Line %d, col %d: Incompatible type %s in while statement\n", aux2->linha, aux2->coluna,
-                   aux2->anotacao);
+            printf("Line %d, col %d: Incompatible tipo %s in while statement\n", backUp2->linha, backUp2->coluna,
+                   backUp2->anotacao);
             atual->anotacao = "undef";
         } else {
             atual->anotacao = "boolean";
         }
 
-        while (aux1 != NULL) {
-            anotarArvore(table_global, table_local, aux1);
-            aux1 = aux1->brother;
+        while (backUp1 != NULL) {
+            anotarArvore(table_global, table_local, backUp1);
+            backUp1 = backUp1->brother;
         }
 
-    } else if (strcmp(atual->Type, "Print") == 0) {
-        aux1 = atual->child;
-        while (aux1 != NULL) {
-            anotarArvore(table_global, table_local, aux1);
-            aux1 = aux1->brother;
+    } else if (strcmp(atual->tipoNo, "Print") == 0) {
+        backUp1 = atual->child;
+        while (backUp1 != NULL) {
+            anotarArvore(table_global, table_local, backUp1);
+            backUp1 = backUp1->brother;
         }
 
-        aux2 = atual->child;
-        if (strcmp(aux2->anotacao, "undef") == 0 || strcmp(aux2->anotacao, "String[]") == 0 ||
-            strcmp(aux2->anotacao, "void") == 0) {
+        backUp2 = atual->child;
+        if (strcmp(backUp2->anotacao, "undef") == 0 || strcmp(backUp2->anotacao, "String[]") == 0 ||
+            strcmp(backUp2->anotacao, "void") == 0) {
             errosSemantica = 1;
-            printf("Line %d, col %d: Incompatible type %s in System.out.print statement\n", aux2->linha, aux2->coluna,
-                   aux2->anotacao);
+            printf("Line %d, col %d: Incompatible tipo %s in System.out.print statement\n", backUp2->linha, backUp2->coluna,
+                   backUp2->anotacao);
         }
-    } else if (strcmp(atual->Type, "Return") == 0) {
-        aux1 = atual->child;
-        while (aux1 != NULL) {
-            anotarArvore(table_global, table_local, aux1);
-            aux1 = aux1->brother;
+    } else if (strcmp(atual->tipoNo, "Return") == 0) {
+        backUp1 = atual->child;
+        while (backUp1 != NULL) {
+            anotarArvore(table_global, table_local, backUp1);
+            backUp1 = backUp1->brother;
         }
 
-        aux2 = atual->child;
-        if (aux2 != NULL) {
-            if (strcmp(table_local->vars->type, "void") == 0) {
+        backUp2 = atual->child;
+        if (backUp2 != NULL) {
+            if (strcmp(table_local->vars->tipo, "void") == 0) {
                 errosSemantica = 1;
-                printf("Line %d, col %d: Incompatible type %s in return statement\n", aux2->linha, aux2->coluna,
-                       aux2->anotacao);
-            } else if (strcmp(table_local->vars->type, aux2->anotacao) == 0) {
+                printf("Line %d, col %d: Incompatible tipo %s in return statement\n", backUp2->linha, backUp2->coluna,
+                       backUp2->anotacao);
+            } else if (strcmp(table_local->vars->tipo, backUp2->anotacao) == 0) {
                 return;
-            } else if (strcmp(table_local->vars->type, "double") == 0) {
-                if ((strcmp(aux2->anotacao, "int") && strcmp(aux2->anotacao, "double"))) {
+            } else if (strcmp(table_local->vars->tipo, "double") == 0) {
+                if ((strcmp(backUp2->anotacao, "int") && strcmp(backUp2->anotacao, "double"))) {
                     errosSemantica = 1;
-                    printf("Line %d, col %d: Incompatible type %s in return statement\n", aux2->linha, aux2->coluna,
-                           aux2->anotacao);
+                    printf("Line %d, col %d: Incompatible tipo %s in return statement\n", backUp2->linha, backUp2->coluna,
+                           backUp2->anotacao);
                 }
             } else {
                 errosSemantica = 1;
-                printf("Line %d, col %d: Incompatible type %s in return statement\n", aux2->linha, aux2->coluna,
-                       aux2->anotacao);
+                printf("Line %d, col %d: Incompatible tipo %s in return statement\n", backUp2->linha, backUp2->coluna,
+                       backUp2->anotacao);
             }
         } else {
-            if (strcmp(table_local->vars->type, "void")) {
+            if (strcmp(table_local->vars->tipo, "void")) {
                 errosSemantica = 1;
-                printf("Line %d, col %d: Incompatible type void in return statement\n", atual->linha, atual->coluna);
+                printf("Line %d, col %d: Incompatible tipo void in return statement\n", atual->linha, atual->coluna);
             }
         }
-    } else if (strcmp(atual->Type, "Assign") == 0) {
-        aux1 = atual->child;
-        while (aux1 != NULL) {
-            anotarArvore(table_global, table_local, aux1);
-            aux1 = aux1->brother;
+    } else if (strcmp(atual->tipoNo, "Assign") == 0) {
+        backUp1 = atual->child;
+        while (backUp1 != NULL) {
+            anotarArvore(table_global, table_local, backUp1);
+            backUp1 = backUp1->brother;
         }
 
-        aux2 = atual->child;
-        aux3 = aux2->brother;
+        backUp2 = atual->child;
+        backUp3 = backUp2->brother;
 
-        atual->anotacao = aux2->anotacao;
+        atual->anotacao = backUp2->anotacao;
 
-        if (strcmp(aux2->anotacao, aux3->anotacao) == 0 && strcmp(aux2->anotacao, "undef") &&
-            strcmp(aux2->anotacao, "String[]")) {
+        if (strcmp(backUp2->anotacao, backUp3->anotacao) == 0 && strcmp(backUp2->anotacao, "undef") &&
+            strcmp(backUp2->anotacao, "String[]")) {
             return;
-        } else if (strcmp(aux2->anotacao, "double") == 0 && strcmp(aux3->anotacao, "int") == 0) {
+        } else if (strcmp(backUp2->anotacao, "double") == 0 && strcmp(backUp3->anotacao, "int") == 0) {
             return;
         } else {
             errosSemantica = 1;
             printf("Line %d, col %d: Operator = cannot be applied to types %s, %s\n", atual->linha, atual->coluna,
-                   aux2->anotacao, aux3->anotacao);
+                   backUp2->anotacao, backUp3->anotacao);
         }
-    } else if (strcmp(atual->Type, "Call") == 0) {
+    } else if (strcmp(atual->tipoNo, "Call") == 0) {
         count_params = 0;
         count_equals = 0;
         count_all_equals = 0;
         find_function = 0;
-        aux1 = (atual->child)->brother;
-        while (aux1 != NULL) {
-            if (strcmp(aux1->Type, "NULL")) {
+        backUp1 = (atual->child)->brother;
+        while (backUp1 != NULL) {
+            if (strcmp(backUp1->tipoNo, "NULL")) {
                 count_params++;
             }
-            anotarArvore(table_global, table_local, aux1);
-            aux1 = aux1->brother;
+            anotarArvore(table_global, table_local, backUp1);
+            backUp1 = backUp1->brother;
         }
 
-        aux_vars = table_global->vars;
-        while (aux_vars != NULL) {
+        backUp_vars = table_global->vars;
+        while (backUp_vars != NULL) {
             count_equals = 0;
             count_all_equals = 0;
-            if (aux_vars->function == 1 && aux_vars->numeroParametros == count_params &&
-                strcmp(aux_vars->name, atual->child->valor) == 0) {
-                aux_params = aux_vars->parametroTipos;
-                aux1 = (atual->child)->brother;
-                while (aux1 != NULL) {
-                    if (strcmp(aux1->Type, "NULL")) {
-                        if (strcmp(aux_params->type, aux1->anotacao) == 0) {
+            if (backUp_vars->isFunction && backUp_vars->numeroParametros == count_params &&
+                strcmp(backUp_vars->nome, atual->child->valor) == 0) {
+                backUp_params = backUp_vars->parametroTipos;
+                backUp1 = (atual->child)->brother;
+                while (backUp1 != NULL) {
+                    if (strcmp(backUp1->tipoNo, "NULL")) {
+                        if (strcmp(backUp_params->tipo, backUp1->anotacao) == 0) {
                             count_all_equals++;
                             count_equals++;
-                        } else if (strcmp(aux1->anotacao, "int") == 0 && strcmp(aux_params->type, "double") == 0) {
+                        } else if (strcmp(backUp1->anotacao, "int") == 0 && strcmp(backUp_params->tipo, "double") == 0) {
                             count_equals++;
                         } else {
                             break;
                         }
-                        aux_params = aux_params->next;
+                        backUp_params = backUp_params->seguinte;
                     }
-                    aux1 = aux1->brother;
+                    backUp1 = backUp1->brother;
                 }
                 if (count_all_equals == count_params) {
                     find_function = 1;
-                    aux = aux_vars->type;
-                    final_params = aux_vars->parametroTipos;
+                    backUp = backUp_vars->tipo;
+                    final_params = backUp_vars->parametroTipos;
                     break;
                 } else if (count_equals == count_params) {
-                    aux = aux_vars->type;
-                    final_params = aux_vars->parametroTipos;
+                    backUp = backUp_vars->tipo;
+                    final_params = backUp_vars->parametroTipos;
                     find_function++;
                 }
             }
-            aux_vars = aux_vars->next;
+            backUp_vars = backUp_vars->seguinte;
         }
 
         if (find_function == 1) {
@@ -779,21 +766,21 @@ void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) 
             } else {
                 atual->child->params = final_params;
             }
-            atual->anotacao = aux;
+            atual->anotacao = backUp;
         } else if (find_function > 1) {
             errosSemantica = 1;
 
             printf("Line %d, col %d: Reference to method %s(", atual->child->linha, atual->child->coluna,
                    atual->child->valor);
-            aux1 = (atual->child)->brother;
-            while (aux1 != NULL) {
-                if (strcmp(aux1->Type, "NULL")) {
-                    printf("%s", aux1->anotacao);
-                    if (aux1->brother != NULL) {
+            backUp1 = (atual->child)->brother;
+            while (backUp1 != NULL) {
+                if (strcmp(backUp1->tipoNo, "NULL")) {
+                    printf("%s", backUp1->anotacao);
+                    if (backUp1->brother != NULL) {
                         printf(",");
                     }
                 }
-                aux1 = aux1->brother;
+                backUp1 = backUp1->brother;
             }
             printf(") is ambiguous\n");
             atual->anotacao = "undef";
@@ -807,298 +794,298 @@ void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) 
 
             printf("Line %d, col %d: Cannot find symbol %s(", atual->child->linha, atual->child->coluna,
                    atual->child->valor);
-            aux1 = (atual->child)->brother;
-            while (aux1 != NULL) {
-                if (strcmp(aux1->Type, "NULL")) {
-                    printf("%s", aux1->anotacao);
+            backUp1 = (atual->child)->brother;
+            while (backUp1 != NULL) {
+                if (strcmp(backUp1->tipoNo, "NULL")) {
+                    printf("%s", backUp1->anotacao);
                     if (count_params != 1) {
                         printf(",");
                     }
                     count_params--;
                 }
-                aux1 = aux1->brother;
+                backUp1 = backUp1->brother;
             }
             printf(")\n");
         }
-    } else if (strcmp(atual->Type, "ParseArgs") == 0) {
-        aux1 = atual->child;
-        while (aux1 != NULL) {
-            anotarArvore(table_global, table_local, aux1);
-            aux1 = aux1->brother;
+    } else if (strcmp(atual->tipoNo, "ParseArgs") == 0) {
+        backUp1 = atual->child;
+        while (backUp1 != NULL) {
+            anotarArvore(table_global, table_local, backUp1);
+            backUp1 = backUp1->brother;
         }
 
-        aux2 = atual->child;
-        aux3 = aux2->brother;
-        if (strcmp(aux2->anotacao, "String[]")) {
+        backUp2 = atual->child;
+        backUp3 = backUp2->brother;
+        if (strcmp(backUp2->anotacao, "String[]")) {
             errosSemantica = 1;
             printf("Line %d, col %d: Operator Integer.parseInt cannot be applied to types %s, %s\n", atual->linha,
-                   atual->coluna, aux2->anotacao, aux3->anotacao);
-        } else if (strcmp(aux3->anotacao, "int")) {
+                   atual->coluna, backUp2->anotacao, backUp3->anotacao);
+        } else if (strcmp(backUp3->anotacao, "int")) {
             errosSemantica = 1;
             printf("Line %d, col %d: Operator Integer.parseInt cannot be applied to types %s, %s\n", atual->linha,
-                   atual->coluna, aux2->anotacao, aux3->anotacao);
+                   atual->coluna, backUp2->anotacao, backUp3->anotacao);
         }
 
         atual->anotacao = "int";
 
-    } else if (strcmp(atual->Type, "Xor") == 0) {
-        aux1 = atual->child;
-        while (aux1 != NULL) {
-            anotarArvore(table_global, table_local, aux1);
-            aux1 = aux1->brother;
+    } else if (strcmp(atual->tipoNo, "Xor") == 0) {
+        backUp1 = atual->child;
+        while (backUp1 != NULL) {
+            anotarArvore(table_global, table_local, backUp1);
+            backUp1 = backUp1->brother;
         }
 
-        aux2 = atual->child;
-        aux3 = aux2->brother;
+        backUp2 = atual->child;
+        backUp3 = backUp2->brother;
 
-        if (strcmp(aux2->anotacao, "int") == 0 && strcmp(aux3->anotacao, "int") == 0) {
+        if (strcmp(backUp2->anotacao, "int") == 0 && strcmp(backUp3->anotacao, "int") == 0) {
             atual->anotacao = "int";
 
-        } else if (strcmp(aux2->anotacao, "boolean")) {
+        } else if (strcmp(backUp2->anotacao, "boolean")) {
 
             errosSemantica = 1;
             printf("Line %d, col %d: Operator ^ cannot be applied to types %s, %s\n", atual->linha, atual->coluna,
-                   aux2->anotacao, aux3->anotacao);
+                   backUp2->anotacao, backUp3->anotacao);
 
-        } else if (strcmp(aux3->anotacao, "boolean")) {
+        } else if (strcmp(backUp3->anotacao, "boolean")) {
 
             errosSemantica = 1;
             printf("Line %d, col %d: Operator ^ cannot be applied to types %s, %s\n", atual->linha, atual->coluna,
-                   aux2->anotacao, aux3->anotacao);
+                   backUp2->anotacao, backUp3->anotacao);
 
         }
 
-        if (strcmp(aux2->anotacao, "int") == 0 && strcmp(aux3->anotacao, "int") == 0) {
+        if (strcmp(backUp2->anotacao, "int") == 0 && strcmp(backUp3->anotacao, "int") == 0) {
             atual->anotacao = "int";
         } else {
             atual->anotacao = "boolean"; //TODO MELHORAR ISTO
         }
 
-    } else if (strcmp(atual->Type, "And") == 0 || strcmp(atual->Type, "Or") == 0) {
-        aux1 = atual->child;
-        while (aux1 != NULL) {
-            anotarArvore(table_global, table_local, aux1);
-            aux1 = aux1->brother;
+    } else if (strcmp(atual->tipoNo, "And") == 0 || strcmp(atual->tipoNo, "Or") == 0) {
+        backUp1 = atual->child;
+        while (backUp1 != NULL) {
+            anotarArvore(table_global, table_local, backUp1);
+            backUp1 = backUp1->brother;
         }
 
-        aux2 = atual->child;
-        aux3 = aux2->brother;
+        backUp2 = atual->child;
+        backUp3 = backUp2->brother;
 
-        if (strcmp(aux2->anotacao, "boolean") && strcmp(atual->Type, "And") == 0) {
+        if (strcmp(backUp2->anotacao, "boolean") && strcmp(atual->tipoNo, "And") == 0) {
             errosSemantica = 1;
             printf("Line %d, col %d: Operator && cannot be applied to types %s, %s\n", atual->linha, atual->coluna,
-                   aux2->anotacao, aux3->anotacao);
+                   backUp2->anotacao, backUp3->anotacao);
 
-        } else if (strcmp(aux2->anotacao, "boolean") && strcmp(atual->Type, "Or") == 0) {
+        } else if (strcmp(backUp2->anotacao, "boolean") && strcmp(atual->tipoNo, "Or") == 0) {
             errosSemantica = 1;
             printf("Line %d, col %d: Operator || cannot be applied to types %s, %s\n", atual->linha, atual->coluna,
-                   aux2->anotacao, aux3->anotacao);
+                   backUp2->anotacao, backUp3->anotacao);
 
-        } else if (strcmp(aux3->anotacao, "boolean") && strcmp(atual->Type, "And") == 0) {
+        } else if (strcmp(backUp3->anotacao, "boolean") && strcmp(atual->tipoNo, "And") == 0) {
             errosSemantica = 1;
             printf("Line %d, col %d: Operator && cannot be applied to types %s, %s\n", atual->linha, atual->coluna,
-                   aux2->anotacao, aux3->anotacao);
+                   backUp2->anotacao, backUp3->anotacao);
 
-        } else if (strcmp(aux3->anotacao, "boolean") && strcmp(atual->Type, "Or") == 0) {
+        } else if (strcmp(backUp3->anotacao, "boolean") && strcmp(atual->tipoNo, "Or") == 0) {
             errosSemantica = 1;
             printf("Line %d, col %d: Operator || cannot be applied to types %s, %s\n", atual->linha, atual->coluna,
-                   aux2->anotacao, aux3->anotacao);
+                   backUp2->anotacao, backUp3->anotacao);
         }
 
         atual->anotacao = "boolean";
 
-    } else if (strcmp(atual->Type, "Eq") == 0 || strcmp(atual->Type, "Gt") == 0 || strcmp(atual->Type, "Ge") == 0
-               || strcmp(atual->Type, "Le") == 0 || strcmp(atual->Type, "Lt") == 0 || strcmp(atual->Type, "Ne") == 0) {
+    } else if (strcmp(atual->tipoNo, "Eq") == 0 || strcmp(atual->tipoNo, "Gt") == 0 || strcmp(atual->tipoNo, "Ge") == 0
+               || strcmp(atual->tipoNo, "Le") == 0 || strcmp(atual->tipoNo, "Lt") == 0 || strcmp(atual->tipoNo, "Ne") == 0) {
 
-        aux1 = atual->child;
-        while (aux1 != NULL) {
-            anotarArvore(table_global, table_local, aux1);
-            aux1 = aux1->brother;
+        backUp1 = atual->child;
+        while (backUp1 != NULL) {
+            anotarArvore(table_global, table_local, backUp1);
+            backUp1 = backUp1->brother;
         }
 
-        aux2 = atual->child;
-        aux3 = aux2->brother;
+        backUp2 = atual->child;
+        backUp3 = backUp2->brother;
 
         atual->anotacao = "boolean";
 
-        if (strcmp(atual->Type, "Eq") == 0) {
-            aux = "==";
-        } else if (strcmp(atual->Type, "Gt") == 0) {
-            aux = ">";
-        } else if (strcmp(atual->Type, "Ge") == 0) {
-            aux = ">=";
-        } else if (strcmp(atual->Type, "Le") == 0) {
-            aux = "<=";
-        } else if (strcmp(atual->Type, "Lt") == 0) {
-            aux = "<";
-        } else if (strcmp(atual->Type, "Ne") == 0) {
-            aux = "!=";
+        if (strcmp(atual->tipoNo, "Eq") == 0) {
+            backUp = "==";
+        } else if (strcmp(atual->tipoNo, "Gt") == 0) {
+            backUp = ">";
+        } else if (strcmp(atual->tipoNo, "Ge") == 0) {
+            backUp = ">=";
+        } else if (strcmp(atual->tipoNo, "Le") == 0) {
+            backUp = "<=";
+        } else if (strcmp(atual->tipoNo, "Lt") == 0) {
+            backUp = "<";
+        } else if (strcmp(atual->tipoNo, "Ne") == 0) {
+            backUp = "!=";
         }
 
-        if (strcmp(atual->Type, "Eq") == 0 || strcmp(atual->Type, "Ne") == 0) {
-            if (strcmp(aux2->anotacao, "boolean") == 0 && strcmp(aux3->anotacao, "boolean") == 0) {
+        if (strcmp(atual->tipoNo, "Eq") == 0 || strcmp(atual->tipoNo, "Ne") == 0) {
+            if (strcmp(backUp2->anotacao, "boolean") == 0 && strcmp(backUp3->anotacao, "boolean") == 0) {
                 return;
             }
         }
 
-        if (strcmp(aux2->anotacao, "int") && strcmp(aux2->anotacao, "double")) {
+        if (strcmp(backUp2->anotacao, "int") && strcmp(backUp2->anotacao, "double")) {
             errosSemantica = 1;
-            printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->linha, atual->coluna, aux,
-                   aux2->anotacao, aux3->anotacao);
-        } else if (strcmp(aux3->anotacao, "double") && strcmp(aux3->anotacao, "int")) {
+            printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->linha, atual->coluna, backUp,
+                   backUp2->anotacao, backUp3->anotacao);
+        } else if (strcmp(backUp3->anotacao, "double") && strcmp(backUp3->anotacao, "int")) {
             errosSemantica = 1;
-            printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->linha, atual->coluna, aux,
-                   aux2->anotacao, aux3->anotacao);
+            printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->linha, atual->coluna, backUp,
+                   backUp2->anotacao, backUp3->anotacao);
         }
-    } else if (strcmp(atual->Type, "Lshift") == 0 || strcmp(atual->Type, "Rshift") == 0) {
+    } else if (strcmp(atual->tipoNo, "Lshift") == 0 || strcmp(atual->tipoNo, "Rshift") == 0) {
 
-        aux1 = atual->child;
-        while (aux1 != NULL) {
-            anotarArvore(table_global, table_local, aux1);
-            aux1 = aux1->brother;
+        backUp1 = atual->child;
+        while (backUp1 != NULL) {
+            anotarArvore(table_global, table_local, backUp1);
+            backUp1 = backUp1->brother;
         }
 
-        aux2 = atual->child;
-        aux3 = aux2->brother;
+        backUp2 = atual->child;
+        backUp3 = backUp2->brother;
 
-        if (strcmp(atual->Type, "Lshift") == 0) {
-            aux = "<<";
+        if (strcmp(atual->tipoNo, "Lshift") == 0) {
+            backUp = "<<";
         } else {
-            aux = ">>";
+            backUp = ">>";
         }
 
-        if (strcmp(aux2->anotacao, "int") == 0) {
-            if (strcmp(aux3->anotacao, "int") == 0) {
+        if (strcmp(backUp2->anotacao, "int") == 0) {
+            if (strcmp(backUp3->anotacao, "int") == 0) {
                 atual->anotacao = "int";
             } else {
                 errosSemantica = 1;
                 printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->linha, atual->coluna,
-                       aux, aux2->anotacao, aux3->anotacao);
+                       backUp, backUp2->anotacao, backUp3->anotacao);
                 atual->anotacao = "undef";
             }
 
-        } else if (strcmp(aux3->anotacao, "int") == 0) {
-            if (strcmp(aux2->anotacao, "int") == 0) {
+        } else if (strcmp(backUp3->anotacao, "int") == 0) {
+            if (strcmp(backUp2->anotacao, "int") == 0) {
                 atual->anotacao = "int";
             } else {
                 errosSemantica = 1;
                 printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->linha, atual->coluna,
-                       aux, aux2->anotacao, aux3->anotacao);
+                       backUp, backUp2->anotacao, backUp3->anotacao);
                 atual->anotacao = "undef";
             }
 
         } else {
             errosSemantica = 1;
-            printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->linha, atual->coluna, aux,
-                   aux2->anotacao, aux3->anotacao);
+            printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->linha, atual->coluna, backUp,
+                   backUp2->anotacao, backUp3->anotacao);
             atual->anotacao = "undef";
         }
 
-    } else if (strcmp(atual->Type, "Add") == 0 || strcmp(atual->Type, "Sub") == 0 || strcmp(atual->Type, "Mul") == 0
-               || strcmp(atual->Type, "Div") == 0 || strcmp(atual->Type, "Mod") == 0) {
+    } else if (strcmp(atual->tipoNo, "Add") == 0 || strcmp(atual->tipoNo, "Sub") == 0 || strcmp(atual->tipoNo, "Mul") == 0
+               || strcmp(atual->tipoNo, "Div") == 0 || strcmp(atual->tipoNo, "Mod") == 0) {
 
-        aux1 = atual->child;
-        while (aux1 != NULL) {
-            anotarArvore(table_global, table_local, aux1);
-            aux1 = aux1->brother;
+        backUp1 = atual->child;
+        while (backUp1 != NULL) {
+            anotarArvore(table_global, table_local, backUp1);
+            backUp1 = backUp1->brother;
         }
 
-        aux2 = atual->child;
-        aux3 = aux2->brother;
+        backUp2 = atual->child;
+        backUp3 = backUp2->brother;
 
-        if (strcmp(atual->Type, "Add") == 0) {
-            aux = "+";
-        } else if (strcmp(atual->Type, "Sub") == 0) {
-            aux = "-";
-        } else if (strcmp(atual->Type, "Mul") == 0) {
-            aux = "*";
-        } else if (strcmp(atual->Type, "Div") == 0) {
-            aux = "/";
+        if (strcmp(atual->tipoNo, "Add") == 0) {
+            backUp = "+";
+        } else if (strcmp(atual->tipoNo, "Sub") == 0) {
+            backUp = "-";
+        } else if (strcmp(atual->tipoNo, "Mul") == 0) {
+            backUp = "*";
+        } else if (strcmp(atual->tipoNo, "Div") == 0) {
+            backUp = "/";
         } else {
-            aux = "%";
+            backUp = "%";
         }
 
-        if (strcmp(aux2->anotacao, "int") == 0) {
-            if (strcmp(aux3->anotacao, "int") == 0) {
+        if (strcmp(backUp2->anotacao, "int") == 0) {
+            if (strcmp(backUp3->anotacao, "int") == 0) {
                 atual->anotacao = "int";
-            } else if (strcmp(aux3->anotacao, "double") == 0) {
+            } else if (strcmp(backUp3->anotacao, "double") == 0) {
                 atual->anotacao = "double";
             } else {
                 errosSemantica = 1;
                 printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->linha, atual->coluna,
-                       aux, aux2->anotacao, aux3->anotacao);
+                       backUp, backUp2->anotacao, backUp3->anotacao);
                 atual->anotacao = "undef";
             }
-        } else if (strcmp(aux2->anotacao, "double") == 0) {
-            if (strcmp(aux3->anotacao, "int") && strcmp(aux3->anotacao, "double")) {
+        } else if (strcmp(backUp2->anotacao, "double") == 0) {
+            if (strcmp(backUp3->anotacao, "int") && strcmp(backUp3->anotacao, "double")) {
                 errosSemantica = 1;
                 printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->linha, atual->coluna,
-                       aux, aux2->anotacao, aux3->anotacao);
+                       backUp, backUp2->anotacao, backUp3->anotacao);
                 atual->anotacao = "undef";
             } else {
                 atual->anotacao = "double";
             }
         } else {
             errosSemantica = 1;
-            printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->linha, atual->coluna, aux,
-                   aux2->anotacao, aux3->anotacao);
+            printf("Line %d, col %d: Operator %s cannot be applied to types %s, %s\n", atual->linha, atual->coluna, backUp,
+                   backUp2->anotacao, backUp3->anotacao);
             atual->anotacao = "undef";
         }
-    } else if (strcmp(atual->Type, "Plus") == 0 || strcmp(atual->Type, "Minus") == 0) {
-        aux1 = atual->child;
-        while (aux1 != NULL) {
-            anotarArvore(table_global, table_local, aux1);
-            aux1 = aux1->brother;
+    } else if (strcmp(atual->tipoNo, "Plus") == 0 || strcmp(atual->tipoNo, "Minus") == 0) {
+        backUp1 = atual->child;
+        while (backUp1 != NULL) {
+            anotarArvore(table_global, table_local, backUp1);
+            backUp1 = backUp1->brother;
         }
 
-        aux2 = atual->child;
-        atual->anotacao = aux2->anotacao;
-        if (strcmp(aux2->anotacao, "int") == 0 || strcmp(aux2->anotacao, "double") == 0) {
-            atual->anotacao = aux2->anotacao;
+        backUp2 = atual->child;
+        atual->anotacao = backUp2->anotacao;
+        if (strcmp(backUp2->anotacao, "int") == 0 || strcmp(backUp2->anotacao, "double") == 0) {
+            atual->anotacao = backUp2->anotacao;
         } else {
             atual->anotacao = "undef";
-            if (strcmp(atual->Type, "Plus") == 0) {
+            if (strcmp(atual->tipoNo, "Plus") == 0) {
                 errosSemantica = 1;
-                printf("Line %d, col %d: Operator + cannot be applied to type %s\n", atual->linha, atual->coluna,
-                       aux2->anotacao);
+                printf("Line %d, col %d: Operator + cannot be applied to tipo %s\n", atual->linha, atual->coluna,
+                       backUp2->anotacao);
             } else {
                 errosSemantica = 1;
-                printf("Line %d, col %d: Operator - cannot be applied to type %s\n", atual->linha, atual->coluna,
-                       aux2->anotacao);
+                printf("Line %d, col %d: Operator - cannot be applied to tipo %s\n", atual->linha, atual->coluna,
+                       backUp2->anotacao);
             }
         }
-    } else if (strcmp(atual->Type, "Not") == 0) {
-        aux1 = atual->child;
-        while (aux1 != NULL) {
-            anotarArvore(table_global, table_local, aux1);
-            aux1 = aux1->brother;
+    } else if (strcmp(atual->tipoNo, "Not") == 0) {
+        backUp1 = atual->child;
+        while (backUp1 != NULL) {
+            anotarArvore(table_global, table_local, backUp1);
+            backUp1 = backUp1->brother;
         }
 
-        aux2 = atual->child;
-        if (strcmp(aux2->anotacao, "boolean")) {
+        backUp2 = atual->child;
+        if (strcmp(backUp2->anotacao, "boolean")) {
             errosSemantica = 1;
-            printf("Line %d, col %d: Operator ! cannot be applied to type %s\n", atual->linha, atual->coluna,
-                   aux2->anotacao);
+            printf("Line %d, col %d: Operator ! cannot be applied to tipo %s\n", atual->linha, atual->coluna,
+                   backUp2->anotacao);
         }
 
         atual->anotacao = "boolean";
-    } else if (strcmp(atual->Type, "Length") == 0) {
-        aux1 = atual->child;
-        while (aux1 != NULL) {
-            anotarArvore(table_global, table_local, aux1);
-            aux1 = aux1->brother;
+    } else if (strcmp(atual->tipoNo, "Length") == 0) {
+        backUp1 = atual->child;
+        while (backUp1 != NULL) {
+            anotarArvore(table_global, table_local, backUp1);
+            backUp1 = backUp1->brother;
         }
 
-        aux2 = atual->child;
-        if (strcmp(aux2->anotacao, "String[]")) {
+        backUp2 = atual->child;
+        if (strcmp(backUp2->anotacao, "String[]")) {
             errosSemantica = 1;
-            printf("Line %d, col %d: Operator .length cannot be applied to type %s\n", atual->linha, atual->coluna,
-                   aux2->anotacao);
+            printf("Line %d, col %d: Operator .length cannot be applied to tipo %s\n", atual->linha, atual->coluna,
+                   backUp2->anotacao);
         }
         atual->anotacao = "int";
-    } else if (strcmp(atual->Type, "BoolLit") == 0) {
+    } else if (strcmp(atual->tipoNo, "BoolLit") == 0) {
         atual->anotacao = "boolean";
-    } else if (strcmp(atual->Type, "DecLit") == 0) {
+    } else if (strcmp(atual->tipoNo, "DecLit") == 0) {
         long l = strtol(atual->valor, NULL, 10);
         if (l >= 0 && l <= INT_MAX) {
             atual->anotacao = "int";
@@ -1108,9 +1095,9 @@ void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) 
         }
 
         atual->anotacao = "int";
-    } else if (strcmp(atual->Type, "RealLit") == 0) {
+    } else if (strcmp(atual->tipoNo, "RealLit") == 0) {
         char *valor = atual->valor;
-        char *aux = (char *) malloc(sizeof(char) * 1024);
+        char *backUp = (char *) malloc(sizeof(char) * 1024);
         int found = 0, zeros = 1, i = 0, j = 0;
 
         while (valor[i] != '\0') {
@@ -1122,15 +1109,15 @@ void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) 
                 if (valor[i] != '.' && valor[i] != '0' && !found) {
                     zeros = 0;
                 }
-                aux[j] = valor[i];
+                backUp[j] = valor[i];
                 j++;
             }
             i++;
         }
-        aux[j] = '\0';
+        backUp[j] = '\0';
 
         if (!zeros) {
-            double d = atof(aux);
+            double d = atof(backUp);
             if (isinf(d) || d == 0 || d > DBL_MAX) {
                 errosSemantica = 1;
                 printf("Line %d, col %d: Number %s out of bounds\n", atual->linha, atual->coluna, atual->valor);
@@ -1139,24 +1126,24 @@ void anotarArvore(sym_table *table_global, sym_table *table_local, node *atual) 
 
         atual->anotacao = "double";
 
-        free(aux);
-        aux = NULL;
-    } else if (strcmp(atual->Type, "StrLit") == 0) {
+        free(backUp);
+        backUp = NULL;
+    } else if (strcmp(atual->tipoNo, "StrLit") == 0) {
         atual->anotacao = "String";
     }
 }
 
-int isExpressao(char *Type) {
-    if (strcmp(Type, "Assign") == 0 || strcmp(Type, "Or") == 0 || strcmp(Type, "And") == 0
-        || strcmp(Type, "Eq") == 0 || strcmp(Type, "Ne") == 0 || strcmp(Type, "Lt") == 0
-        || strcmp(Type, "Ge") == 0 || strcmp(Type, "Add") == 0 || strcmp(Type, "Sub") == 0
-        || strcmp(Type, "Mul") == 0 || strcmp(Type, "Div") == 0 || strcmp(Type, "Mod") == 0
-        || strcmp(Type, "Not") == 0 || strcmp(Type, "Minus") == 0 || strcmp(Type, "Plus") == 0
-        || strcmp(Type, "Length") == 0 || strcmp(Type, "Call") == 0 || strcmp(Type, "ParseArgs") == 0
-        || strcmp(Type, "BoolLit") == 0 || strcmp(Type, "DecLit") == 0 || strcmp(Type, "Id") == 0
-        || strcmp(Type, "RealLit") == 0 || strcmp(Type, "StrLit") == 0 || strcmp(Type, "Gt") == 0
-        || strcmp(Type, "Le") == 0
-        || strcmp(Type, "Lshift") == 0 || strcmp(Type, "Rshift") == 0 || strcmp(Type, "Xor") == 0) {
+int isExpressao(char *tipoNo) {
+    if (strcmp(tipoNo, "Assign") == 0 || strcmp(tipoNo, "Or") == 0 || strcmp(tipoNo, "And") == 0
+        || strcmp(tipoNo, "Eq") == 0 || strcmp(tipoNo, "Ne") == 0 || strcmp(tipoNo, "Lt") == 0
+        || strcmp(tipoNo, "Ge") == 0 || strcmp(tipoNo, "Add") == 0 || strcmp(tipoNo, "Sub") == 0
+        || strcmp(tipoNo, "Mul") == 0 || strcmp(tipoNo, "Div") == 0 || strcmp(tipoNo, "Mod") == 0
+        || strcmp(tipoNo, "Not") == 0 || strcmp(tipoNo, "Minus") == 0 || strcmp(tipoNo, "Plus") == 0
+        || strcmp(tipoNo, "Length") == 0 || strcmp(tipoNo, "Call") == 0 || strcmp(tipoNo, "ParseArgs") == 0
+        || strcmp(tipoNo, "BoolLit") == 0 || strcmp(tipoNo, "DecLit") == 0 || strcmp(tipoNo, "Id") == 0
+        || strcmp(tipoNo, "RealLit") == 0 || strcmp(tipoNo, "StrLit") == 0 || strcmp(tipoNo, "Gt") == 0
+        || strcmp(tipoNo, "Le") == 0
+        || strcmp(tipoNo, "Lshift") == 0 || strcmp(tipoNo, "Rshift") == 0 || strcmp(tipoNo, "Xor") == 0) {
         return 1;
 
     } else {
@@ -1166,13 +1153,13 @@ int isExpressao(char *Type) {
 
 void imprimirArvoreAnotada(node *current, int n) {
     int i;
-    param_list *aux;
+    listaParametros *backUp;
 
     if (current == NULL) {
         return;
     }
 
-    if (strcmp(current->Type, "NULL") == 0) {
+    if (strcmp(current->tipoNo, "NULL") == 0) {
         imprimirArvoreAnotada(current->brother, n);
         return;
     } else {
@@ -1181,27 +1168,27 @@ void imprimirArvoreAnotada(node *current, int n) {
         }
 
         if (current->valor != NULL) {
-            if (current->numeroParametros >= 0 && isExpressao(current->Type) == 1) {
-                printf("%s(%s) - (", current->Type, current->valor);
-                aux = current->params;
-                while (aux != NULL) {
-                    printf("%s", aux->type);
-                    if (aux->next != NULL) {
+            if (current->numeroParametros >= 0 && isExpressao(current->tipoNo) == 1) {
+                printf("%s(%s) - (", current->tipoNo, current->valor);
+                backUp = current->params;
+                while (backUp != NULL) {
+                    printf("%s", backUp->tipo);
+                    if (backUp->seguinte != NULL) {
                         printf(",");
                     }
-                    aux = aux->next;
+                    backUp = backUp->seguinte;
                 }
                 printf(")");
-            } else if (current->anotacao != NULL && isExpressao(current->Type) == 1) {
-                printf("%s(%s) - %s", current->Type, current->valor, current->anotacao);
+            } else if (current->anotacao != NULL && isExpressao(current->tipoNo) == 1) {
+                printf("%s(%s) - %s", current->tipoNo, current->valor, current->anotacao);
             } else {
-                printf("%s(%s)", current->Type, current->valor);
+                printf("%s(%s)", current->tipoNo, current->valor);
             }
         } else {
-            if (current->anotacao != NULL && isExpressao(current->Type) == 1) {
-                printf("%s - %s", current->Type, current->anotacao);
+            if (current->anotacao != NULL && isExpressao(current->tipoNo) == 1) {
+                printf("%s - %s", current->tipoNo, current->anotacao);
             } else {
-                printf("%s", current->Type);
+                printf("%s", current->tipoNo);
             }
         }
         printf("\n");
@@ -1211,28 +1198,28 @@ void imprimirArvoreAnotada(node *current, int n) {
     imprimirArvoreAnotada(current->brother, n);
 }
 
-int contador_label_while = 1;
-int contador_label_or_and = 1;
+int contadorWhile = 1;
+int contadorLogico = 1;
 int return_encontrado = 0;
-int contador_stringlit = 1;
-int contador_comparador_label = 1;
-int contador_conversoes = 1;
-int contador_var_globais = 1;
-int contador_var_locais = 1;
-int contador_label_if = 1;
+int contadorStr = 1;
+int contadorComparador = 1;
+int contadorConversoes = 1;
+int contadorVarsG = 1;
+int contadorVarsL = 1;
+int contadorIf = 1;
 
 strlit_list *vars_encontradas;
 strlit_list *lista_global_stringlit;
 
-strlit_list *create_strlit(char *valor, char *type){
+strlit_list *criarStr(char *valor, char *tipo){
     strlit_list *new = (strlit_list*)malloc(sizeof(strlit_list));
     new->valor = (char*)strdup(valor);
-    new->type = (char*)strdup(type);
-    new->next = NULL;
+    new->tipo = (char*)strdup(tipo);
+    new->seguinte = NULL;
     return new;
 }
 
-void LimpaLista(strlit_list *variavel){
+void limpaLista(strlit_list *variavel){
     if(variavel == NULL){
         return;
     }
@@ -1241,38 +1228,38 @@ void LimpaLista(strlit_list *variavel){
         free(variavel->valor);
         variavel->valor = NULL;
     }
-    if(variavel->type != NULL){
-        free(variavel->type);
-        variavel->type = NULL;
+    if(variavel->tipo != NULL){
+        free(variavel->tipo);
+        variavel->tipo = NULL;
     }
 
-    LimpaLista(variavel->next);
+    limpaLista(variavel->seguinte);
 
     free(variavel);
     variavel = NULL;
 }
 
 void add_strlit(strlit_list *strList, strlit_list *new){
-    strlit_list *aux = strList;
+    strlit_list *backUp = strList;
 
-    if(aux == NULL){
+    if(backUp == NULL){
         strList = new;
         return;
     }
 
-    while(aux->next != NULL){
-        aux = aux->next;
+    while(backUp->seguinte != NULL){
+        backUp = backUp->seguinte;
     }
 
-    aux->next = new;
+    backUp->seguinte = new;
 }
 
 void print_stringlit(strlit_list *stringlit_List){
-    strlit_list *aux_stringList = stringlit_List;
+    strlit_list *backUp_stringList = stringlit_List;
     printf("\n");
-    while(aux_stringList != NULL){
-        printf("%s", aux_stringList->valor);
-        aux_stringList = aux_stringList->next;
+    while(backUp_stringList != NULL){
+        printf("%s", backUp_stringList->valor);
+        backUp_stringList = backUp_stringList->seguinte;
     }
 }
 
@@ -1280,195 +1267,195 @@ void gera_llvm(node *raiz){
     print_declaracao_var_func_global(raiz);
     gera_codigo_llvm(raiz);
     print_stringlit(lista_global_stringlit);
-    LimpaLista(lista_global_stringlit);
+    limpaLista(lista_global_stringlit);
 }
 
 void print_declaracao_var_func_global(node *raiz){ //da print das variaveis globais e das funcoes declaradas
-    var_list *aux_vars = tabelaGlobal->vars;
-    int flag = 0;
-    while(aux_vars != NULL){
-        if(aux_vars->function == 0){
-            if(strcmp(aux_vars->type, "int") == 0){
-                printf("@global.var.%s = common global i32 0, align 4\n", aux_vars->name);
+    listaVariaveis *backUp_vars = tabelaGlobal->vars;
+    int isParametro = 0;
+    while(backUp_vars != NULL){
+        if(!backUp_vars->isFunction){
+            if(strcmp(backUp_vars->tipo, "int") == 0){
+                printf("@global.var.%s = common global i32 0, align 4\n", backUp_vars->nome);
             }
-            if(strcmp(aux_vars->type, "double") == 0){
-                printf("@global.var.%s = common global double 0.000000e+00, align 4\n", aux_vars->name);
+            if(strcmp(backUp_vars->tipo, "double") == 0){
+                printf("@global.var.%s = common global double 0.000000e+00, align 4\n", backUp_vars->nome);
             }
-            if(strcmp(aux_vars->type, "boolean") == 0){
-                printf("@global.var.%s = common global i1 0, align 4\n", aux_vars->name);
+            if(strcmp(backUp_vars->tipo, "boolean") == 0){
+                printf("@global.var.%s = common global i1 0, align 4\n", backUp_vars->nome);
             }
-            contador_var_globais++;
+            contadorVarsG++;
         } else {
-            if(strcmp(aux_vars->type, "void") == 0 && strcmp(aux_vars->name, "main") == 0){
-                flag = 1;
+            if(strcmp(backUp_vars->tipo, "void") == 0 && strcmp(backUp_vars->nome, "main") == 0){
+                isParametro = 1;
             }
         }
 
-        aux_vars = aux_vars->next;
+        backUp_vars = backUp_vars->seguinte;
     }
 
     printf("declare i32 @atoi(i8*)\n");
     printf("declare i32 @printf(i8*, ...)\n\n");
     printf("define i32 @main(i32 %%argc, i8** %%argv) {\n");
-    if (flag == 1){
+    if (isParametro == 1){
         printf("\tcall void @function.declaration.v.main.s.(i32 %%argc, i8** %%argv)\n");
     } 
     printf("\tret i32 0\n");
     printf("}\n\n");
 }
 
-int aux_length_strlit;
-char *aux_change_strlit;
-char *aux_change_declit;
-char *aux_change_reallit;
-char *global_function_type;
+int tamanhoStrlit;
+char *stringStrlit;
+char *stringDeclit;
+char *stringReallit;
+char *tipoFuncao;
 
-void change_strlit(char *valor){
+void acertarStr(char *valor){
     valor++; //removes the first "
     valor[strlen(valor)-1] = 0; //removes the last "
 
     int i = 0, j = 0;
 
-    aux_length_strlit = 0;
+    tamanhoStrlit = 0;
     
     while (valor[i] != '\0') {
         if(valor[i] == '%'){
-            aux_length_strlit++;
-            aux_change_strlit[j] = valor[i];
+            tamanhoStrlit++;
+            stringStrlit[j] = valor[i];
             j++;
-            aux_length_strlit++;
-            aux_change_strlit[j] = valor[i];
+            tamanhoStrlit++;
+            stringStrlit[j] = valor[i];
             j++;
         }
         else if(valor[i] == '\\'){
-            aux_length_strlit++;
+            tamanhoStrlit++;
             i++;
             if(valor[i] == 'n'){
-                aux_change_strlit[j] = '\\';
+                stringStrlit[j] = '\\';
                 j++;
-                aux_change_strlit[j] = '0';
+                stringStrlit[j] = '0';
                 j++;
-                aux_change_strlit[j] = 'A';
+                stringStrlit[j] = 'A';
                 j++;
             }
             else if(valor[i] == 'f'){
-                aux_change_strlit[j] = '\\';
+                stringStrlit[j] = '\\';
                 j++;
-                aux_change_strlit[j] = '0';
+                stringStrlit[j] = '0';
                 j++;
-                aux_change_strlit[j] = 'C';
+                stringStrlit[j] = 'C';
                 j++;
             }
             else if(valor[i] == 'r'){
-                aux_change_strlit[j] = '\\';
+                stringStrlit[j] = '\\';
                 j++;
-                aux_change_strlit[j] = '0';
+                stringStrlit[j] = '0';
                 j++;
-                aux_change_strlit[j] = 'D';
+                stringStrlit[j] = 'D';
                 j++;
             }
             else if(valor[i] == '"'){
-                aux_change_strlit[j] = '\\';
+                stringStrlit[j] = '\\';
                 j++;
-                aux_change_strlit[j] = '2';
+                stringStrlit[j] = '2';
                 j++;
-                aux_change_strlit[j] = '2';
+                stringStrlit[j] = '2';
                 j++;
             }
             else if(valor[i] == 't'){
-                aux_change_strlit[j] = '\\';
+                stringStrlit[j] = '\\';
                 j++;
-                aux_change_strlit[j] = '0';
+                stringStrlit[j] = '0';
                 j++;
-                aux_change_strlit[j] = '9';
+                stringStrlit[j] = '9';
                 j++;
             }
             else if(valor[i] == '\\'){
-                aux_change_strlit[j] = '\\';
+                stringStrlit[j] = '\\';
                 j++;
-                aux_change_strlit[j] = '5';
+                stringStrlit[j] = '5';
                 j++;
-                aux_change_strlit[j] = 'C';
+                stringStrlit[j] = 'C';
                 j++;
             }
         }
         else{
-            aux_length_strlit++;
-            aux_change_strlit[j] = valor[i];
+            tamanhoStrlit++;
+            stringStrlit[j] = valor[i];
             j++;
         }
         i++;
     }
 
-    aux_length_strlit++;
-    aux_change_strlit[j] = '\\';
-    aux_change_strlit[j+1] = '0';
-    aux_change_strlit[j+2] = '0';
-    aux_change_strlit[j+3] = '\0';
+    tamanhoStrlit++;
+    stringStrlit[j] = '\\';
+    stringStrlit[j+1] = '0';
+    stringStrlit[j+2] = '0';
+    stringStrlit[j+3] = '\0';
 }
 
 void gera_codigo_llvm(node *atual){
-    node *aux1;
+    node *backUp1;
 
-    if(atual == NULL || strcmp(atual->Type, "NULL") == 0){
+    if(atual == NULL || strcmp(atual->tipoNo, "NULL") == 0){
         return;
     }
 
-    if(strcmp(atual->Type, "Program") == 0){
-        aux1 = atual->child;
-        while(aux1 != NULL){
-            gera_codigo_llvm(aux1);
-            aux1 = aux1->brother;
+    if(strcmp(atual->tipoNo, "Program") == 0){
+        backUp1 = atual->child;
+        while(backUp1 != NULL){
+            gera_codigo_llvm(backUp1);
+            backUp1 = backUp1->brother;
         }
     }
-    else if(strcmp(atual->Type, "MethodDecl") == 0){
-        aux_change_strlit = (char*)malloc(sizeof(char)*1024);
-        aux_change_declit = (char*)malloc(sizeof(char)*1024);
-        aux_change_reallit = (char*)malloc(sizeof(char)*1024);
+    else if(strcmp(atual->tipoNo, "MethodDecl") == 0){
+        stringStrlit = (char*)malloc(sizeof(char)*1024);
+        stringDeclit = (char*)malloc(sizeof(char)*1024);
+        stringReallit = (char*)malloc(sizeof(char)*1024);
 
-        contador_var_locais = 1;
-        contador_comparador_label = 1;
-        contador_conversoes = 1;
-        contador_label_if = 1;
-        contador_label_while = 1;
-        contador_label_or_and = 1;
-        global_function_type = NULL;
+        contadorVarsL = 1;
+        contadorComparador = 1;
+        contadorConversoes = 1;
+        contadorIf = 1;
+        contadorWhile = 1;
+        contadorLogico = 1;
+        tipoFuncao = NULL;
         return_encontrado = 0;
         vars_encontradas = NULL;
 
-        aux1 = atual->child;
-        while(aux1 != NULL){
-            gera_codigo_llvm(aux1);
-            aux1 = aux1->brother;
+        backUp1 = atual->child;
+        while(backUp1 != NULL){
+            gera_codigo_llvm(backUp1);
+            backUp1 = backUp1->brother;
         }
 
-        LimpaLista(vars_encontradas);
+        limpaLista(vars_encontradas);
         vars_encontradas = NULL;
-        free(aux_change_strlit);
-        aux_change_strlit = NULL;
-        free(aux_change_declit);
-        aux_change_declit = NULL;
-        free(aux_change_reallit);
-        aux_change_reallit = NULL;
+        free(stringStrlit);
+        stringStrlit = NULL;
+        free(stringDeclit);
+        stringDeclit = NULL;
+        free(stringReallit);
+        stringReallit = NULL;
     }
-    else if(strcmp(atual->Type, "MethodHeader") == 0){
-        create_header(atual);
+    else if(strcmp(atual->tipoNo, "MethodHeader") == 0){
+        criarHeaderInicial(atual);
     }
-    else if(strcmp(atual->Type, "MethodBody") == 0){
-        aux1 = atual->child;
-        while(aux1 != NULL){
-            code_llvm(aux1);
-            aux1 = aux1->brother;
+    else if(strcmp(atual->tipoNo, "MethodBody") == 0){
+        backUp1 = atual->child;
+        while(backUp1 != NULL){
+            fazer_llvm_rec(backUp1);
+            backUp1 = backUp1->brother;
         }
 
-        if(global_function_type != NULL && strcmp(global_function_type, "Void") == 0){
+        if(tipoFuncao != NULL && strcmp(tipoFuncao, "Void") == 0){
             printf("\tret void\n");
         }
-        else if(global_function_type != NULL){
-            if(strcmp(global_function_type, "Int") == 0){
+        else if(tipoFuncao != NULL){
+            if(strcmp(tipoFuncao, "Int") == 0){
                 printf("\tret i32 0\n");
             }
-            else if(strcmp(global_function_type, "Double") == 0){
+            else if(strcmp(tipoFuncao, "Double") == 0){
                 printf("\tret double 0.000000e+00\n");
             }
             else{
@@ -1480,1373 +1467,1361 @@ void gera_codigo_llvm(node *atual){
     }
 }
 
-void create_header(node *atual){
-    char *aux_type, *aux_name;
+void criarHeaderInicial(node *atual){
+    char *backUp_type, *backUp_name;
     int i, found_string = 0;
-    node *aux1, *aux2, *aux3, *aux_node_params;
+    node *backUp1, *backUp2, *backUp3, *backUp_node_params;
 
-    aux1 = atual->child; //FUNCTION TYPE
-    aux_type = aux1->Type;
-    global_function_type = aux1->Type;
+    backUp1 = atual->child; //FUNCTION TYPE
+    backUp_type = backUp1->tipoNo;
+    tipoFuncao = backUp1->tipoNo;
 
-    aux2 = aux1->brother; //FUNCTION NAME
-    aux_name = aux2->valor;
-    aux3 = aux2->brother; //METHOD PARAMS
+    backUp2 = backUp1->brother; //FUNCTION NAME
+    backUp_name = backUp2->valor;
+    backUp3 = backUp2->brother; //METHOD PARAMS
 
-    char *aux_name_f = (char*)malloc(1024*sizeof(char));
-    char *aux_params_f = (char*)malloc(1024*sizeof(char));
-    char *aux_main = (char*)strdup("i32 %argc, i8** %argv");
-    int aux_count_f, aux_count_params_f = 0;
+    char *backUp_name_f = (char*)malloc(1024*sizeof(char));
+    char *backUp_params_f = (char*)malloc(1024*sizeof(char));
+    char *backUp_main = (char*)strdup("i32 %argc, i8** %argv");
+    int backUp_count_f, backUp_count_params_f = 0;
 
-    aux_node_params = aux3->child;
+    backUp_node_params = backUp3->child;
 
-    if(strcmp(aux_type, "Void") == 0){
-        sprintf(aux_name_f, "function.declaration.%s.%s.", "v", aux_name);
+    if(strcmp(backUp_type, "Void") == 0){
+        sprintf(backUp_name_f, "function.declaration.%s.%s.", "v", backUp_name);
     }
-    else if(strcmp(aux_type, "Int") == 0){
-        sprintf(aux_name_f, "function.declaration.%s.%s.", "i", aux_name);
+    else if(strcmp(backUp_type, "Int") == 0){
+        sprintf(backUp_name_f, "function.declaration.%s.%s.", "i", backUp_name);
     }
-    else if(strcmp(aux_type, "Double") == 0){
-        sprintf(aux_name_f, "function.declaration.%s.%s.", "d", aux_name);
+    else if(strcmp(backUp_type, "Double") == 0){
+        sprintf(backUp_name_f, "function.declaration.%s.%s.", "d", backUp_name);
     }
     else{
-        sprintf(aux_name_f, "function.declaration.%s.%s.", "b", aux_name);
+        sprintf(backUp_name_f, "function.declaration.%s.%s.", "b", backUp_name);
     }
 
-    aux_count_f = strlen(aux_name_f);
+    backUp_count_f = strlen(backUp_name_f);
 
-    while(aux_node_params != NULL){
+    while(backUp_node_params != NULL){
         
-        node *brother = aux_node_params->child;
+        node *brother = backUp_node_params->child;
 
-        if(strcmp(aux_node_params->Type, "ParamDecl") == 0){
+        if(strcmp(backUp_node_params->tipoNo, "ParamDecl") == 0){
             if(vars_encontradas == NULL){
-                vars_encontradas = create_strlit(brother->brother->valor, brother->Type);
+                vars_encontradas = criarStr(brother->brother->valor, brother->tipoNo);
             }
             else{
-                add_strlit(vars_encontradas, create_strlit(brother->brother->valor, brother->Type));
+                add_strlit(vars_encontradas, criarStr(brother->brother->valor, brother->tipoNo));
             }
         }
 
-        aux_node_params = aux_node_params->brother;
+        backUp_node_params = backUp_node_params->brother;
     }
 
-    strlit_list *aux_param_decl = vars_encontradas;
+    strlit_list *backUp_param_decl = vars_encontradas;
 
-    while(aux_param_decl != NULL){
+    while(backUp_param_decl != NULL){
 
-        if(strcmp(aux_param_decl->type, "StringArray") == 0){
-            char *aux = (char*)strdup("s.");
+        if(strcmp(backUp_param_decl->tipo, "StringArray") == 0){
+            char *backUp = (char*)strdup("s.");
             i = 0;
-            while(aux[i] != '\0'){
-                aux_name_f[aux_count_f] = aux[i];
-                aux_count_f++;
+            while(backUp[i] != '\0'){
+                backUp_name_f[backUp_count_f] = backUp[i];
+                backUp_count_f++;
                 i++;
             }
 
             found_string = 1;
 
-            free(aux);
-            aux = NULL;
+            free(backUp);
+            backUp = NULL;
 
             break;
         }
-        if(strcmp(aux_param_decl->type, "Int") == 0){
-            char *aux;
-            aux = (char*)strdup("i.");
+        if(strcmp(backUp_param_decl->tipo, "Int") == 0){
+            char *backUp;
+            backUp = (char*)strdup("i.");
             i = 0;
-            while(aux[i] != '\0'){
-                aux_name_f[aux_count_f] = aux[i];
-                aux_count_f++;
+            while(backUp[i] != '\0'){
+                backUp_name_f[backUp_count_f] = backUp[i];
+                backUp_count_f++;
                 i++;
             }
 
-            free(aux);
-            aux = NULL;
+            free(backUp);
+            backUp = NULL;
 
-            aux = (char*)malloc(1024*sizeof(char));
-            sprintf(aux, "i32 %%%s_aux", aux_param_decl->valor);
+            backUp = (char*)malloc(1024*sizeof(char));
+            sprintf(backUp, "i32 %%%s_backUp", backUp_param_decl->valor);
             i = 0;
-            while(aux[i] != '\0'){
-                aux_params_f[aux_count_params_f] = aux[i];
-                aux_count_params_f++;
+            while(backUp[i] != '\0'){
+                backUp_params_f[backUp_count_params_f] = backUp[i];
+                backUp_count_params_f++;
                 i++;
             }
 
-            free(aux);
-            aux = NULL;
+            free(backUp);
+            backUp = NULL;
         }
-        if(strcmp(aux_param_decl->type, "Bool") == 0){
+        if(strcmp(backUp_param_decl->tipo, "Bool") == 0){
 
-            char *aux;
-            aux = (char*)strdup("b.");
+            char *backUp;
+            backUp = (char*)strdup("b.");
             i = 0;
-            while(aux[i] != '\0'){
-                aux_name_f[aux_count_f] = aux[i];
-                aux_count_f++;
+            while(backUp[i] != '\0'){
+                backUp_name_f[backUp_count_f] = backUp[i];
+                backUp_count_f++;
                 i++;
             }
 
-            free(aux);
-            aux = NULL;
+            free(backUp);
+            backUp = NULL;
 
-            aux = (char*)malloc(1024*sizeof(char));
-            sprintf(aux, "i1 %%%s_aux", aux_param_decl->valor);
+            backUp = (char*)malloc(1024*sizeof(char));
+            sprintf(backUp, "i1 %%%s_backUp", backUp_param_decl->valor);
             i = 0;
-            while(aux[i] != '\0'){
-                aux_params_f[aux_count_params_f] = aux[i];
-                aux_count_params_f++;
+            while(backUp[i] != '\0'){
+                backUp_params_f[backUp_count_params_f] = backUp[i];
+                backUp_count_params_f++;
                 i++;
             }
 
-            free(aux);
-            aux = NULL;
+            free(backUp);
+            backUp = NULL;
         }
-        if(strcmp(aux_param_decl->type, "Double") == 0){
-            char *aux;
-            aux = (char*)strdup("d.");
+        if(strcmp(backUp_param_decl->tipo, "Double") == 0){
+            char *backUp;
+            backUp = (char*)strdup("d.");
             i = 0;
-            while(aux[i] != '\0'){
-                aux_name_f[aux_count_f] = aux[i];
-                aux_count_f++;
+            while(backUp[i] != '\0'){
+                backUp_name_f[backUp_count_f] = backUp[i];
+                backUp_count_f++;
                 i++;
             }
 
-            free(aux);
-            aux = NULL;
+            free(backUp);
+            backUp = NULL;
 
-            aux = (char*)malloc(1024*sizeof(char));
-            sprintf(aux, "double %%%s_aux", aux_param_decl->valor);
+            backUp = (char*)malloc(1024*sizeof(char));
+            sprintf(backUp, "double %%%s_backUp", backUp_param_decl->valor);
             i = 0;
-            while(aux[i] != '\0'){
-                aux_params_f[aux_count_params_f] = aux[i];
-                aux_count_params_f++;
+            while(backUp[i] != '\0'){
+                backUp_params_f[backUp_count_params_f] = backUp[i];
+                backUp_count_params_f++;
                 i++;
             }
 
-            free(aux);
-            aux = NULL;
-        }
-
-        if(aux_param_decl->next != NULL){
-            aux_params_f[aux_count_params_f] = ',';
-            aux_count_params_f++;
-            aux_params_f[aux_count_params_f] = ' ';
-            aux_count_params_f++;
+            free(backUp);
+            backUp = NULL;
         }
 
-        aux_param_decl = aux_param_decl->next;
+        if(backUp_param_decl->seguinte != NULL){
+            backUp_params_f[backUp_count_params_f] = ',';
+            backUp_count_params_f++;
+            backUp_params_f[backUp_count_params_f] = ' ';
+            backUp_count_params_f++;
+        }
+
+        backUp_param_decl = backUp_param_decl->seguinte;
     }
 
-    aux_name_f[aux_count_f] = '\0';
-    aux_params_f[aux_count_params_f] = '\0';
+    backUp_name_f[backUp_count_f] = '\0';
+    backUp_params_f[backUp_count_params_f] = '\0';
 
-    if(strcmp(aux_type, "Void") == 0){
+    if(strcmp(backUp_type, "Void") == 0){
         if(found_string == 0){
-            printf("define void @%s(%s) {\n", aux_name_f, aux_params_f);
+            printf("define void @%s(%s) {\n", backUp_name_f, backUp_params_f);
         }
         else{
-            printf("define void @%s(%s) {\n", aux_name_f, aux_main);
+            printf("define void @%s(%s) {\n", backUp_name_f, backUp_main);
         }
     }
-    else if(strcmp(aux_type, "Int") == 0){
+    else if(strcmp(backUp_type, "Int") == 0){
         if(found_string == 0){
-            printf("define i32 @%s(%s) {\n", aux_name_f, aux_params_f);
+            printf("define i32 @%s(%s) {\n", backUp_name_f, backUp_params_f);
         }
         else{
-            printf("define i32 @%s(%s) {\n", aux_name_f, aux_main);
+            printf("define i32 @%s(%s) {\n", backUp_name_f, backUp_main);
         }
     }
-    else if(strcmp(aux_type, "Double") == 0){
+    else if(strcmp(backUp_type, "Double") == 0){
         if(found_string == 0){
-            printf("define double @%s(%s) {\n", aux_name_f, aux_params_f);
+            printf("define double @%s(%s) {\n", backUp_name_f, backUp_params_f);
         }
         else{
-            printf("define double @%s(%s) {\n", aux_name_f, aux_main);
+            printf("define double @%s(%s) {\n", backUp_name_f, backUp_main);
         }
     }
-    else if(strcmp(aux_type, "Bool") == 0){
+    else if(strcmp(backUp_type, "Bool") == 0){
         if(found_string == 0){
-            printf("define i1 @%s(%s) {\n", aux_name_f, aux_params_f);
+            printf("define i1 @%s(%s) {\n", backUp_name_f, backUp_params_f);
         }
         else{
-            printf("define i1 @%s(%s) {\n", aux_name_f, aux_main);
+            printf("define i1 @%s(%s) {\n", backUp_name_f, backUp_main);
         }
     }
 
     if(found_string == 1){
-        printf("\t%%argc_aux = alloca i32, align 4\n");
-        printf("\t%%argv_aux = alloca i8**, align 8\n");
-        printf("\tstore i32 %%argc, i32* %%argc_aux, align 4\n");
-        printf("\tstore i8** %%argv, i8*** %%argv_aux, align 8\n");
-        LimpaLista(vars_encontradas);
+        printf("\t%%argc_backUp = alloca i32, align 4\n");
+        printf("\t%%argv_backUp = alloca i8**, align 8\n");
+        printf("\tstore i32 %%argc, i32* %%argc_backUp, align 4\n");
+        printf("\tstore i8** %%argv, i8*** %%argv_backUp, align 8\n");
+        limpaLista(vars_encontradas);
         vars_encontradas = NULL;
     }
     else{
         strlit_list *atual = vars_encontradas;
         while(atual != NULL){
-            if(strcmp(atual->type, "Int") == 0){
+            if(strcmp(atual->tipo, "Int") == 0){
                 printf("\t%%%s = alloca i32, align 4\n", atual->valor);
-                printf("\tstore i32 %%%s_aux, i32* %%%s, align 4\n", atual->valor, atual->valor);
+                printf("\tstore i32 %%%s_backUp, i32* %%%s, align 4\n", atual->valor, atual->valor);
             }
-            else if(strcmp(atual->type, "Double") == 0){
+            else if(strcmp(atual->tipo, "Double") == 0){
                 printf("\t%%%s = alloca double, align 8\n", atual->valor);
-                printf("\tstore double %%%s_aux, double* %%%s, align 8\n", atual->valor, atual->valor);
+                printf("\tstore double %%%s_backUp, double* %%%s, align 8\n", atual->valor, atual->valor);
             }
-            else if(strcmp(atual->type, "Bool") == 0){
+            else if(strcmp(atual->tipo, "Bool") == 0){
                 printf("\t%%%s = alloca i1\n", atual->valor);
-                printf("\tstore i1 %%%s_aux, i1* %%%s\n", atual->valor, atual->valor);
+                printf("\tstore i1 %%%s_backUp, i1* %%%s\n", atual->valor, atual->valor);
             }
             
-            atual = atual->next;
+            atual = atual->seguinte;
         }
     }
 
-    free(aux_name_f);
-    aux_name_f = NULL;
-    free(aux_params_f);
-    aux_params_f = NULL;
-    free(aux_main);
-    aux_main = NULL;
+    free(backUp_name_f);
+    backUp_name_f = NULL;
+    free(backUp_params_f);
+    backUp_params_f = NULL;
+    free(backUp_main);
+    backUp_main = NULL;
 }
 
-char *verify_its_global(char *name){
-    char *aux = NULL;
+char *verify_its_global(char *nome){
+    char *backUp = NULL;
     strlit_list *atual = vars_encontradas;
     while(atual != NULL){
-        if(strcmp(atual->valor, name) == 0){
-            return name;
+        if(strcmp(atual->valor, nome) == 0){
+            return nome;
         }
-        atual = atual->next;
+        atual = atual->seguinte;
     }
 
-    return aux;
+    return backUp;
 }
 
-void function_varDecl(char *type, char *name){
-    if(strcmp(type, "Int") == 0){
-        printf("\t%%%s = alloca i32, align 4\n", name);
+void tratarVarDecl(char *tipo, char *nome){
+    if(strcmp(tipo, "Int") == 0){
+        printf("\t%%%s = alloca i32, align 4\n", nome);
     }
-    if(strcmp(type, "Double") == 0){
-        printf("\t%%%s = alloca double, align 8\n", name);
+    if(strcmp(tipo, "Double") == 0){
+        printf("\t%%%s = alloca double, align 8\n", nome);
     }
-    if(strcmp(type, "Bool") == 0){
-        printf("\t%%%s = alloca i1\n", name);
+    if(strcmp(tipo, "Bool") == 0){
+        printf("\t%%%s = alloca i1\n", nome);
     }
 
     if(vars_encontradas == NULL){
-        vars_encontradas = create_strlit(name, type);
+        vars_encontradas = criarStr(nome, tipo);
     }
     else{
-        add_strlit(vars_encontradas, create_strlit(name, type));
+        add_strlit(vars_encontradas, criarStr(nome, tipo));
     }
 }
 
-void function_realLit(node *atual){
-    /*printf("\t%%%d = alloca double, align 8\n", contador_var_locais);
-    change_reallit(atual->valor);
-    printf("\tstore double %.16e, double* %%%d, align 8\n", atof(aux_change_reallit), contador_var_locais);                  
-    contador_var_locais++;*/
-    change_reallit(atual->valor);
-    printf("\t%%%d = fadd double 0.000000e+00, %.16e\n", contador_var_locais, atof(aux_change_reallit));
-    contador_var_locais++;
+void tratarReal(node *atual){
+    acertarReal(atual->valor);
+    printf("\t%%%d = fadd double 0.000000e+00, %.16e\n", contadorVarsL, atof(stringReallit));
+    contadorVarsL++;
 }
 
-void function_decLit(node *atual){
-    /*printf("\t%%%d = alloca i32, align 4\n", contador_var_locais);
-    change_declit(atual->valor);
-    printf("\tstore i32 %d, i32* %%%d, align 4\n", atoi(aux_change_declit), contador_var_locais);                  
-    contador_var_locais++;*/
-    change_declit(atual->valor);
-    printf("\t%%%d = add i32 0, %s\n", contador_var_locais, aux_change_declit);
-    contador_var_locais++;
+void tratarDec(node *atual){
+    acertarDec(atual->valor);
+    printf("\t%%%d = add i32 0, %s\n", contadorVarsL, stringDeclit);
+    contadorVarsL++;
 }
 
-void function_boolLit(node *atual){
-    /*printf("\t%%%d = alloca i1\n", contador_var_locais);
-    printf("\tstore i1 %s, i1* %%%d\n", atual->valor, contador_var_locais);                  
-    contador_var_locais++;
-    printf("\t%%%d = load i1, i1* %%%d\n", contador_var_locais, contador_var_locais-1);*/
+void tratarBool(node *atual){
     if(strcmp(atual->valor, "true") == 0){
-        printf("\t%%%d = add i1 0, 1\n", contador_var_locais);
+        printf("\t%%%d = add i1 0, 1\n", contadorVarsL);
     }
     else{
-        printf("\t%%%d = add i1 0, 0\n", contador_var_locais);
+        printf("\t%%%d = add i1 0, 0\n", contadorVarsL);
     }
-    contador_var_locais++;
+    contadorVarsL++;
 }
 
-void function_length(node *atual){
-    printf("\t%%%d = load i32, i32* %%argc_aux, align 4\n", contador_var_locais);
-    contador_var_locais++;
-    printf("\t%%%d = sub i32 %%%d, 1\n", contador_var_locais, contador_var_locais-1);
-    contador_var_locais++;
+void tratarLen(node *atual){
+    printf("\t%%%d = load i32, i32* %%argc_backUp, align 4\n", contadorVarsL);
+    contadorVarsL++;
+    printf("\t%%%d = sub i32 %%%d, 1\n", contadorVarsL, contadorVarsL-1);
+    contadorVarsL++;
 }
 
-void function_print(node *atual){
-    strlit_list *aux_str;
-    char *aux = (char*)malloc(1024*sizeof(char));
+void tratarPrint(node *atual){
+    strlit_list *backUp_str;
+    char *backUp = (char*)malloc(1024*sizeof(char));
 
     if(strcmp(atual->child->anotacao, "String") == 0){
-        change_strlit(atual->child->valor);
-        sprintf(aux, "@.global.strlit.%d = private unnamed_addr constant [%d x i8] c\"%s\", align 1\n", contador_stringlit, aux_length_strlit, aux_change_strlit);
-        printf("\t%%%d = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([%d x i8], [%d x i8]* @.global.strlit.%d, i32 0, i32 0))\n", contador_var_locais, aux_length_strlit, aux_length_strlit, contador_stringlit);
-        contador_var_locais++;
+        acertarStr(atual->child->valor);
+        sprintf(backUp, "@.global.strlit.%d = private unnamed_addr constant [%d x i8] c\"%s\", align 1\n", contadorStr, tamanhoStrlit, stringStrlit);
+        printf("\t%%%d = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([%d x i8], [%d x i8]* @.global.strlit.%d, i32 0, i32 0))\n", contadorVarsL, tamanhoStrlit, tamanhoStrlit, contadorStr);
+        contadorVarsL++;
     }
     else if(strcmp(atual->child->anotacao, "int") == 0){
-        sprintf(aux, "@.global.strlit.%d = private unnamed_addr constant [3 x i8] c\"%%d\\00\", align 1\n", contador_stringlit);
-        printf("\t%%%d = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.global.strlit.%d, i32 0, i32 0), i32 %%%d)\n", contador_var_locais, contador_stringlit, contador_var_locais-1);
-        contador_var_locais++;
+        sprintf(backUp, "@.global.strlit.%d = private unnamed_addr constant [3 x i8] c\"%%d\\00\", align 1\n", contadorStr);
+        printf("\t%%%d = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.global.strlit.%d, i32 0, i32 0), i32 %%%d)\n", contadorVarsL, contadorStr, contadorVarsL-1);
+        contadorVarsL++;
     }
     else if(strcmp(atual->child->anotacao, "double") == 0){                 
-        sprintf(aux, "@.global.strlit.%d = private unnamed_addr constant [6 x i8] c\"%%.16e\\00\", align 1\n", contador_stringlit);
-        printf("\t%%%d = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @.global.strlit.%d, i32 0, i32 0), double %%%d)\n", contador_var_locais, contador_stringlit, contador_var_locais-1);
-        contador_var_locais++;
+        sprintf(backUp, "@.global.strlit.%d = private unnamed_addr constant [6 x i8] c\"%%.16e\\00\", align 1\n", contadorStr);
+        printf("\t%%%d = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @.global.strlit.%d, i32 0, i32 0), double %%%d)\n", contadorVarsL, contadorStr, contadorVarsL-1);
+        contadorVarsL++;
     }
     else if(strcmp(atual->child->anotacao, "boolean") == 0){
-        printf("\t%%compare.%d = icmp eq i1 %%%d, 1\n", contador_comparador_label, contador_var_locais-1);
-        printf("\tbr i1 %%compare.%d, label %%compare.if.%d, label %%compare.else.%d\n", contador_comparador_label, contador_comparador_label, contador_comparador_label);
-        printf("\tcompare.if.%d:\n", contador_comparador_label);
-        sprintf(aux, "@.global.strlit.%d = private unnamed_addr constant [5 x i8] c\"true\\00\", align 1\n", contador_stringlit);
-        printf("\t\t%%%d = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([5 x i8], [5 x i8]* @.global.strlit.%d, i32 0, i32 0))\n", contador_var_locais, contador_stringlit);
-        printf("\t\tbr label %%compare.end.%d\n", contador_comparador_label);
-        contador_var_locais++;
-        contador_stringlit++;
+        printf("\t%%compare.%d = icmp eq i1 %%%d, 1\n", contadorComparador, contadorVarsL-1);
+        printf("\tbr i1 %%compare.%d, label %%compare.if.%d, label %%compare.else.%d\n", contadorComparador, contadorComparador, contadorComparador);
+        printf("\tcompare.if.%d:\n", contadorComparador);
+        sprintf(backUp, "@.global.strlit.%d = private unnamed_addr constant [5 x i8] c\"true\\00\", align 1\n", contadorStr);
+        printf("\t\t%%%d = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([5 x i8], [5 x i8]* @.global.strlit.%d, i32 0, i32 0))\n", contadorVarsL, contadorStr);
+        printf("\t\tbr label %%compare.end.%d\n", contadorComparador);
+        contadorVarsL++;
+        contadorStr++;
         
         //ADD TO LIST
         if(lista_global_stringlit == NULL){
-            lista_global_stringlit = create_strlit(aux, atual->child->anotacao);
+            lista_global_stringlit = criarStr(backUp, atual->child->anotacao);
         }
         else{
-            aux_str = create_strlit(aux, atual->child->anotacao);
-            add_strlit(lista_global_stringlit, aux_str);
+            backUp_str = criarStr(backUp, atual->child->anotacao);
+            add_strlit(lista_global_stringlit, backUp_str);
         }
 
-        printf("\tcompare.else.%d:\n", contador_comparador_label);
-        printf("\t\t%%%d = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @.global.strlit.%d, i32 0, i32 0))\n", contador_var_locais, contador_stringlit);
-        printf("\t\tbr label %%compare.end.%d\n", contador_comparador_label);
-        sprintf(aux, "@.global.strlit.%d = private unnamed_addr constant [6 x i8] c\"false\\00\", align 1\n", contador_stringlit);
-        printf("\tcompare.end.%d:\n", contador_comparador_label);
-        contador_comparador_label++;
-        contador_var_locais++;
+        printf("\tcompare.else.%d:\n", contadorComparador);
+        printf("\t\t%%%d = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @.global.strlit.%d, i32 0, i32 0))\n", contadorVarsL, contadorStr);
+        printf("\t\tbr label %%compare.end.%d\n", contadorComparador);
+        sprintf(backUp, "@.global.strlit.%d = private unnamed_addr constant [6 x i8] c\"false\\00\", align 1\n", contadorStr);
+        printf("\tcompare.end.%d:\n", contadorComparador);
+        contadorComparador++;
+        contadorVarsL++;
     }
 
     if(lista_global_stringlit == NULL){
-        lista_global_stringlit = create_strlit(aux, atual->child->anotacao);
+        lista_global_stringlit = criarStr(backUp, atual->child->anotacao);
     }
     else{
-        aux_str = create_strlit(aux, atual->child->anotacao);
-        add_strlit(lista_global_stringlit, aux_str);
+        backUp_str = criarStr(backUp, atual->child->anotacao);
+        add_strlit(lista_global_stringlit, backUp_str);
     }
 
-    contador_stringlit++;
+    contadorStr++;
 
-    free(aux);
-    aux = NULL;
+    free(backUp);
+    backUp = NULL;
 }
 
-void function_assign(node *atual){
-    node *aux = atual->child;
-    if(strcmp(aux->anotacao, "int") == 0){
-        if(verify_its_global(aux->valor) != NULL){
-            printf("\tstore i32 %%%d, i32* %%%s, align 4\n", contador_var_locais-1, aux->valor);
+void tratarAtr(node *atual){
+    node *backUp = atual->child;
+    if(strcmp(backUp->anotacao, "int") == 0){
+        if(verify_its_global(backUp->valor) != NULL){
+            printf("\tstore i32 %%%d, i32* %%%s, align 4\n", contadorVarsL-1, backUp->valor);
         }
         else{
-            printf("\tstore i32 %%%d, i32* @global.var.%s, align 4\n", contador_var_locais-1, aux->valor);
+            printf("\tstore i32 %%%d, i32* @global.var.%s, align 4\n", contadorVarsL-1, backUp->valor);
         }
     }
-    else if(strcmp(aux->anotacao, "double") == 0){
-        if(strcmp(aux->brother->anotacao, "int") == 0){
-            printf("\t%%convertion.%d = sitofp i32 %%%d to double\n", contador_conversoes, contador_var_locais-1);
-            if(verify_its_global(aux->valor) != NULL){
-                printf("\tstore double %%convertion.%d, double* %%%s, align 8\n", contador_conversoes, aux->valor);                  
+    else if(strcmp(backUp->anotacao, "double") == 0){
+        if(strcmp(backUp->brother->anotacao, "int") == 0){
+            printf("\t%%convertion.%d = sitofp i32 %%%d to double\n", contadorConversoes, contadorVarsL-1);
+            if(verify_its_global(backUp->valor) != NULL){
+                printf("\tstore double %%convertion.%d, double* %%%s, align 8\n", contadorConversoes, backUp->valor);                  
             }
             else{
-                printf("\tstore double %%convertion.%d, double* @global.var.%s, align 8\n", contador_conversoes, aux->valor);                                     
+                printf("\tstore double %%convertion.%d, double* @global.var.%s, align 8\n", contadorConversoes, backUp->valor);                                     
             }
-            contador_conversoes++;
+            contadorConversoes++;
         }
         else{
-            if(verify_its_global(aux->valor) != NULL){
-                printf("\tstore double %%%d, double* %%%s, align 8\n", contador_var_locais-1, aux->valor);                  
+            if(verify_its_global(backUp->valor) != NULL){
+                printf("\tstore double %%%d, double* %%%s, align 8\n", contadorVarsL-1, backUp->valor);                  
             }
             else{
-                printf("\tstore double %%%d, double* @global.var.%s, align 8\n", contador_var_locais-1, aux->valor);                                     
+                printf("\tstore double %%%d, double* @global.var.%s, align 8\n", contadorVarsL-1, backUp->valor);                                     
             }
         }
     }
-    else if(strcmp(aux->anotacao, "boolean") == 0){
-        if(verify_its_global(aux->valor) != NULL){
-            printf("\tstore i1 %%%d, i1* %%%s\n", contador_var_locais-1, aux->valor);                   
+    else if(strcmp(backUp->anotacao, "boolean") == 0){
+        if(verify_its_global(backUp->valor) != NULL){
+            printf("\tstore i1 %%%d, i1* %%%s\n", contadorVarsL-1, backUp->valor);                   
         }
         else{
-            printf("\tstore i1 %%%d, i1* @global.var.%s\n", contador_var_locais-1, aux->valor);
+            printf("\tstore i1 %%%d, i1* @global.var.%s\n", contadorVarsL-1, backUp->valor);
         }
     }
 }
 
-void function_id(node *atual){
+void tratarId(node *atual){
     if(strcmp(atual->anotacao, "String[]") == 0){
-        //printf("\t%%%d = load i8**, i8*** %%argv_aux, align 8\n", contador_var_locais);
-        //contador_var_locais++;
+        //printf("\t%%%d = load i8**, i8*** %%argv_backUp, align 8\n", contadorVarsL);
+        //contadorVarsL++;
         return;
     }
     else if(verify_its_global(atual->valor) != NULL){
         if(strcmp(atual->anotacao, "int") == 0){
-            printf("\t%%%d = load i32, i32* %%%s, align 4\n", contador_var_locais, atual->valor);
+            printf("\t%%%d = load i32, i32* %%%s, align 4\n", contadorVarsL, atual->valor);
         }
         else if(strcmp(atual->anotacao, "double") == 0){
-            printf("\t%%%d = load double, double* %%%s, align 8\n", contador_var_locais, atual->valor);
+            printf("\t%%%d = load double, double* %%%s, align 8\n", contadorVarsL, atual->valor);
         }
         else if(strcmp(atual->anotacao, "boolean") == 0){
-            printf("\t%%%d = load i1, i1* %%%s\n", contador_var_locais, atual->valor);
+            printf("\t%%%d = load i1, i1* %%%s\n", contadorVarsL, atual->valor);
         }
-        contador_var_locais++;
+        contadorVarsL++;
     }
     else{
         if(strcmp(atual->anotacao, "int") == 0){
-            printf("\t%%%d = load i32, i32* @global.var.%s, align 4\n", contador_var_locais, atual->valor);
+            printf("\t%%%d = load i32, i32* @global.var.%s, align 4\n", contadorVarsL, atual->valor);
         }
         else if(strcmp(atual->anotacao, "double") == 0){
-            printf("\t%%%d = load double, double* @global.var.%s, align 8\n", contador_var_locais, atual->valor);
+            printf("\t%%%d = load double, double* @global.var.%s, align 8\n", contadorVarsL, atual->valor);
         }
         else if(strcmp(atual->anotacao, "boolean") == 0){
-            printf("\t%%%d = load i1, i1* @global.var.%s\n", contador_var_locais, atual->valor);
+            printf("\t%%%d = load i1, i1* @global.var.%s\n", contadorVarsL, atual->valor);
         }
-        contador_var_locais++;
+        contadorVarsL++;
     }
 }
 
-void function_minus(node *atual){
+void tratarMenos(node *atual){
     if(strcmp(atual->anotacao, "int") == 0){
-        printf("\t%%%d = sub nsw i32 0, %%%d\n", contador_var_locais, contador_var_locais-1);
-        contador_var_locais++;
+        printf("\t%%%d = sub nsw i32 0, %%%d\n", contadorVarsL, contadorVarsL-1);
+        contadorVarsL++;
     }
     else{
-        printf("\t%%%d = fsub double -0.000000e+00, %%%d\n", contador_var_locais, contador_var_locais-1);
-        contador_var_locais++;
+        printf("\t%%%d = fsub double -0.000000e+00, %%%d\n", contadorVarsL, contadorVarsL-1);
+        contadorVarsL++;
     }
 }
 
-void function_parseArgs(node *atual){
-    printf("\t%%%d = add i32 %%%d, 1\n", contador_var_locais, contador_var_locais-1);
-    contador_var_locais++;
-    printf("\t%%%d = load i8**, i8*** %%argv_aux, align 8\n", contador_var_locais);
-    contador_var_locais++;
-    printf("\t%%%d = getelementptr inbounds i8*, i8** %%%d, i32 %%%d\n", contador_var_locais, contador_var_locais-1, contador_var_locais-2);
-    contador_var_locais++;
-    printf("\t%%%d = load i8*, i8** %%%d, align 8\n", contador_var_locais, contador_var_locais-1);
-    contador_var_locais++;
-    printf("\t%%%d = call i32 @atoi(i8* %%%d)\n", contador_var_locais, contador_var_locais-1);
-    contador_var_locais++;
+void tratarParse(node *atual){
+    printf("\t%%%d = add i32 %%%d, 1\n", contadorVarsL, contadorVarsL-1);
+    contadorVarsL++;
+    printf("\t%%%d = load i8**, i8*** %%argv_backUp, align 8\n", contadorVarsL);
+    contadorVarsL++;
+    printf("\t%%%d = getelementptr inbounds i8*, i8** %%%d, i32 %%%d\n", contadorVarsL, contadorVarsL-1, contadorVarsL-2);
+    contadorVarsL++;
+    printf("\t%%%d = load i8*, i8** %%%d, align 8\n", contadorVarsL, contadorVarsL-1);
+    contadorVarsL++;
+    printf("\t%%%d = call i32 @atoi(i8* %%%d)\n", contadorVarsL, contadorVarsL-1);
+    contadorVarsL++;
 }
 
-void function_add(node *atual, int var1, int var2){
+void tratarAdd(node *atual, int var1, int var2){
     if(strcmp(atual->anotacao, "int") == 0){
-        printf("\t%%%d = add i32 %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = add i32 %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
     else if(strcmp(atual->anotacao, "double") == 0){
         if(strcmp(atual->child->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var1);
-            var1 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var1);
+            var1 = contadorVarsL;
+            contadorVarsL++;
         }
         if(strcmp(atual->child->brother->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var2);
-            var2 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var2);
+            var2 = contadorVarsL;
+            contadorVarsL++;
         }
-        printf("\t%%%d = fadd double %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = fadd double %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
 }
 
-void function_sub(node *atual, int var1, int var2){
+void tratarSub(node *atual, int var1, int var2){
     if(strcmp(atual->anotacao, "int") == 0){
-        printf("\t%%%d = sub i32 %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = sub i32 %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
     else if(strcmp(atual->anotacao, "double") == 0){
         if(strcmp(atual->child->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var1);
-            var1 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var1);
+            var1 = contadorVarsL;
+            contadorVarsL++;
         }
         if(strcmp(atual->child->brother->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var2);
-            var2 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var2);
+            var2 = contadorVarsL;
+            contadorVarsL++;
         }
-        printf("\t%%%d = fsub double %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = fsub double %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
 }
 
-void function_mul(node *atual, int var1, int var2){
+void tratarMul(node *atual, int var1, int var2){
     if(strcmp(atual->anotacao, "int") == 0){
-        printf("\t%%%d = mul i32 %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = mul i32 %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
     else if(strcmp(atual->anotacao, "double") == 0){
         if(strcmp(atual->child->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var1);
-            var1 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var1);
+            var1 = contadorVarsL;
+            contadorVarsL++;
         }
         if(strcmp(atual->child->brother->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var2);
-            var2 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var2);
+            var2 = contadorVarsL;
+            contadorVarsL++;
         }
-        printf("\t%%%d = fmul double %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = fmul double %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
 }
 
-void function_div(node *atual, int var1, int var2){
+void tratarDiv(node *atual, int var1, int var2){
     if(strcmp(atual->anotacao, "int") == 0){
-        printf("\t%%%d = sdiv i32 %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = sdiv i32 %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
     else if(strcmp(atual->anotacao, "double") == 0){
         if(strcmp(atual->child->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var1);
-            var1 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var1);
+            var1 = contadorVarsL;
+            contadorVarsL++;
         }
         if(strcmp(atual->child->brother->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var2);
-            var2 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var2);
+            var2 = contadorVarsL;
+            contadorVarsL++;
         }
-        printf("\t%%%d = fdiv double %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = fdiv double %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
 }
 
-void function_mod(node *atual, int var1, int var2){
+void tratarMod(node *atual, int var1, int var2){
     if(strcmp(atual->anotacao, "int") == 0){
-        printf("\t%%%d = srem i32 %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = srem i32 %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
     else if(strcmp(atual->anotacao, "double") == 0){
         if(strcmp(atual->child->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var1);
-            var1 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var1);
+            var1 = contadorVarsL;
+            contadorVarsL++;
         }
         if(strcmp(atual->child->brother->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var2);
-            var2 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var2);
+            var2 = contadorVarsL;
+            contadorVarsL++;
         }
-        printf("\t%%%d = frem double %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = frem double %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
 }
 
-void function_not(node *atual, int var1){
-    printf("\t%%%d = zext i1 %%%d to i32\n", contador_var_locais, var1);
-    contador_var_locais++;
-    printf("\t%%%d = icmp eq i32 %%%d, 0\n", contador_var_locais, contador_var_locais-1);
-    contador_var_locais++;
+void tratarNot(node *atual, int var1){
+    printf("\t%%%d = zext i1 %%%d to i32\n", contadorVarsL, var1);
+    contadorVarsL++;
+    printf("\t%%%d = icmp eq i32 %%%d, 0\n", contadorVarsL, contadorVarsL-1);
+    contadorVarsL++;
 }
 
-void function_eq(node *atual, int var1, int var2){
+void tratarIgual(node *atual, int var1, int var2){
     if(strcmp(atual->child->anotacao, "int") == 0 && strcmp(atual->child->brother->anotacao, "int") == 0){
-        printf("\t%%%d = icmp eq i32 %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = icmp eq i32 %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
     else if(strcmp(atual->child->anotacao, "boolean") == 0 && strcmp(atual->child->brother->anotacao, "boolean") == 0){
-        printf("\t%%%d = zext i1 %%%d to i32\n", contador_var_locais, var1);
-        contador_var_locais++;
-        printf("\t%%%d = zext i1 %%%d to i32\n", contador_var_locais, var2);
-        contador_var_locais++;
-        printf("\t%%%d = icmp eq i32 %%%d, %%%d\n", contador_var_locais, contador_var_locais-1, contador_var_locais-2);
-        contador_var_locais++;
+        printf("\t%%%d = zext i1 %%%d to i32\n", contadorVarsL, var1);
+        contadorVarsL++;
+        printf("\t%%%d = zext i1 %%%d to i32\n", contadorVarsL, var2);
+        contadorVarsL++;
+        printf("\t%%%d = icmp eq i32 %%%d, %%%d\n", contadorVarsL, contadorVarsL-1, contadorVarsL-2);
+        contadorVarsL++;
     }
     else{
         if(strcmp(atual->child->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var1);
-            var1 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var1);
+            var1 = contadorVarsL;
+            contadorVarsL++;
         }
         if(strcmp(atual->child->brother->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var2);
-            var2 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var2);
+            var2 = contadorVarsL;
+            contadorVarsL++;
         }
-        printf("\t%%%d = fcmp oeq double %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = fcmp oeq double %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
 }
 
-void function_neq(node *atual, int var1, int var2){
+void tratarDif(node *atual, int var1, int var2){
     if(strcmp(atual->child->anotacao, "int") == 0 && strcmp(atual->child->brother->anotacao, "int") == 0){
-        printf("\t%%%d = icmp ne i32 %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = icmp ne i32 %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
     else if(strcmp(atual->child->anotacao, "boolean") == 0 && strcmp(atual->child->brother->anotacao, "boolean") == 0){
-        printf("\t%%%d = zext i1 %%%d to i32\n", contador_var_locais, var1);
-        contador_var_locais++;
-        printf("\t%%%d = zext i1 %%%d to i32\n", contador_var_locais, var2);
-        contador_var_locais++;
-        printf("\t%%%d = icmp ne i32 %%%d, %%%d\n", contador_var_locais, contador_var_locais-1, contador_var_locais-2);
-        contador_var_locais++;
+        printf("\t%%%d = zext i1 %%%d to i32\n", contadorVarsL, var1);
+        contadorVarsL++;
+        printf("\t%%%d = zext i1 %%%d to i32\n", contadorVarsL, var2);
+        contadorVarsL++;
+        printf("\t%%%d = icmp ne i32 %%%d, %%%d\n", contadorVarsL, contadorVarsL-1, contadorVarsL-2);
+        contadorVarsL++;
     }
     else{ //tem um double
         if(strcmp(atual->child->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var1);
-            var1 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var1);
+            var1 = contadorVarsL;
+            contadorVarsL++;
         }
         if(strcmp(atual->child->brother->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var2);
-            var2 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var2);
+            var2 = contadorVarsL;
+            contadorVarsL++;
         }
-        printf("\t%%%d = fcmp une double %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = fcmp une double %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
 }
 
-void function_lt(node *atual, int var1, int var2){
+void tratarMenor(node *atual, int var1, int var2){
     if(strcmp(atual->child->anotacao, "int") == 0 && strcmp(atual->child->brother->anotacao, "int") == 0){
-        printf("\t%%%d = icmp slt i32 %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = icmp slt i32 %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
     else{
         if(strcmp(atual->child->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var1);
-            var1 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var1);
+            var1 = contadorVarsL;
+            contadorVarsL++;
         }
         if(strcmp(atual->child->brother->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var2);
-            var2 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var2);
+            var2 = contadorVarsL;
+            contadorVarsL++;
         }
-        printf("\t%%%d = fcmp olt double %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = fcmp olt double %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
 }
 
-void function_gt(node *atual, int var1, int var2){
+void tratarMaior(node *atual, int var1, int var2){
     if(strcmp(atual->child->anotacao, "int") == 0 && strcmp(atual->child->brother->anotacao, "int") == 0){
-        printf("\t%%%d = icmp sgt i32 %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = icmp sgt i32 %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
     else{ //tem um double
         if(strcmp(atual->child->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var1);
-            var1 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var1);
+            var1 = contadorVarsL;
+            contadorVarsL++;
         }
         if(strcmp(atual->child->brother->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var2);
-            var2 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var2);
+            var2 = contadorVarsL;
+            contadorVarsL++;
         }
-        printf("\t%%%d = fcmp ogt double %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = fcmp ogt double %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
 }
 
-void function_leq(node *atual, int var1, int var2){
+void tratarMenorIgual(node *atual, int var1, int var2){
     if(strcmp(atual->child->anotacao, "int") == 0 && strcmp(atual->child->brother->anotacao, "int") == 0){
-        printf("\t%%%d = icmp sle i32 %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = icmp sle i32 %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
     else{
         if(strcmp(atual->child->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var1);
-            var1 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var1);
+            var1 = contadorVarsL;
+            contadorVarsL++;
         }
         if(strcmp(atual->child->brother->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var2);
-            var2 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var2);
+            var2 = contadorVarsL;
+            contadorVarsL++;
         }
-        printf("\t%%%d = fcmp ole double %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = fcmp ole double %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
 }
 
-void function_geq(node *atual, int var1, int var2){
+void tratarMaiorIgual(node *atual, int var1, int var2){
     if(strcmp(atual->child->anotacao, "int") == 0 && strcmp(atual->child->brother->anotacao, "int") == 0){
-        printf("\t%%%d = icmp sge i32 %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = icmp sge i32 %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
     else{
         if(strcmp(atual->child->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var1);
-            var1 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var1);
+            var1 = contadorVarsL;
+            contadorVarsL++;
         }
         if(strcmp(atual->child->brother->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var2);
-            var2 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var2);
+            var2 = contadorVarsL;
+            contadorVarsL++;
         }
-        printf("\t%%%d = fcmp oge double %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = fcmp oge double %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
 }
 
-void function_and(node *atual){
+void tratarAnd(node *atual){
     node *first = atual->child->brother;
-    while(strcmp(first->Type, "NULL") == 0){
+    while(strcmp(first->tipoNo, "NULL") == 0){
         first = first->brother;
     }
 
-    int aux_count_and_or = contador_label_or_and;
-    contador_label_or_and++;
-    printf("\tbr label %%label.entry%d\n", aux_count_and_or);
-    printf("label.entry%d:        ;it's an and\n", aux_count_and_or);
-    printf("\t%%%d = icmp eq i1 %%%d, 1\n", contador_var_locais, contador_var_locais-1);
-    printf("\tbr i1 %%%d, label %%label.transition%d, label %%label.end%d\n", contador_var_locais, aux_count_and_or, aux_count_and_or);
-    printf("label.transition%d:       ;transition of an and\n", aux_count_and_or);
-    contador_var_locais++;
-    code_llvm(first);
-    printf("\t%%%d = icmp eq i1 %%%d, 1\n", contador_var_locais, contador_var_locais-1);
-    printf("\tbr label %%label.end%d\n", aux_count_and_or);
-    printf("label.end%d:      ; it's the end of an and\n", aux_count_and_or);
-    contador_var_locais++;
-    if(aux_count_and_or == contador_label_or_and-1){ //não existiu mais nenhum and
-        printf("\t%%%d = phi i1 [ 0, %%label.entry%d ], [ %%%d, %%label.transition%d ]\n", contador_var_locais, aux_count_and_or, contador_var_locais-1, aux_count_and_or);
+    int contador_backUp_logico = contadorLogico;
+    contadorLogico++;
+    printf("\tbr label %%label.entry%d\n", contador_backUp_logico);
+    printf("label.entry%d:\n", contador_backUp_logico);
+    printf("\t%%%d = icmp eq i1 %%%d, 1\n", contadorVarsL, contadorVarsL-1);
+    printf("\tbr i1 %%%d, label %%label.transition%d, label %%label.end%d\n", contadorVarsL, contador_backUp_logico, contador_backUp_logico);
+    printf("label.transition%d:\n", contador_backUp_logico);
+    contadorVarsL++;
+    fazer_llvm_rec(first);
+    printf("\t%%%d = icmp eq i1 %%%d, 1\n", contadorVarsL, contadorVarsL-1);
+    printf("\tbr label %%label.end%d\n", contador_backUp_logico);
+    printf("label.end%d:\n", contador_backUp_logico);
+    contadorVarsL++;
+    if(contador_backUp_logico == contadorLogico-1){ //nao ha mais and
+        printf("\t%%%d = phi i1 [ 0, %%label.entry%d ], [ %%%d, %%label.transition%d ]\n", contadorVarsL, contador_backUp_logico, contadorVarsL-1, contador_backUp_logico);
     }
-    else{ //existiu mais um and
-        printf("\t%%%d = phi i1 [ 0, %%label.entry%d ], [ %%%d, %%label.end%d ]\n", contador_var_locais, aux_count_and_or, contador_var_locais-1, aux_count_and_or+1);
+    else{ //ainda ha mais and
+        printf("\t%%%d = phi i1 [ 0, %%label.entry%d ], [ %%%d, %%label.end%d ]\n", contadorVarsL, contador_backUp_logico, contadorVarsL-1, contador_backUp_logico+1);
     }
-    contador_var_locais++;
+    contadorVarsL++;
 }
 
 void function_xor(node *atual, int var1, int var2){
     if(strcmp(atual->anotacao, "int") == 0){
-        printf("\t%%%d = xor i32 %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = xor i32 %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
     else if(strcmp(atual->anotacao, "double") == 0){
         if(strcmp(atual->child->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var1);
-            var1 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var1);
+            var1 = contadorVarsL;
+            contadorVarsL++;
         }
         if(strcmp(atual->child->brother->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var2);
-            var2 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var2);
+            var2 = contadorVarsL;
+            contadorVarsL++;
         }
-        printf("\t%%%d = fxor double %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = fxor double %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
 }
 
-void function_or(node *atual){
+void tratarOr(node *atual){
     node *first = atual->child->brother;
-    while(strcmp(first->Type, "NULL") == 0){
+    while(strcmp(first->tipoNo, "NULL") == 0){
         first = first->brother;
     }
 
-    int aux_count_and_or = contador_label_or_and;
-    contador_label_or_and++;
-    printf("\tbr label %%label.entry%d\n", aux_count_and_or);
-    printf("label.entry%d:        ;it's an or\n", aux_count_and_or);
-    printf("\t%%%d = icmp eq i1 %%%d, 0\n", contador_var_locais, contador_var_locais-1);
-    printf("\tbr i1 %%%d, label %%label.transition%d, label %%label.end%d\n", contador_var_locais, aux_count_and_or, aux_count_and_or);
-    printf("label.transition%d:       ;transition of an or\n", aux_count_and_or);
-    contador_var_locais++;
-    code_llvm(first);
-    printf("\t%%%d = icmp eq i1 %%%d, 1\n", contador_var_locais, contador_var_locais-1);
-    printf("\tbr label %%label.end%d\n", aux_count_and_or);
-    printf("label.end%d:      ; it's the end of an or\n", aux_count_and_or);
-    contador_var_locais++;
-    if(aux_count_and_or == contador_label_or_and-1){
-        printf("\t%%%d = phi i1 [ 1, %%label.entry%d ], [ %%%d, %%label.transition%d ]\n", contador_var_locais, aux_count_and_or, contador_var_locais-1, aux_count_and_or);
+    int contador_backUp_logico = contadorLogico;
+    contadorLogico++;
+    printf("\tbr label %%label.entry%d\n", contador_backUp_logico);
+    printf("label.entry%d:\n", contador_backUp_logico);
+    printf("\t%%%d = icmp eq i1 %%%d, 0\n", contadorVarsL, contadorVarsL-1);
+    printf("\tbr i1 %%%d, label %%label.transition%d, label %%label.end%d\n", contadorVarsL, contador_backUp_logico, contador_backUp_logico);
+    printf("label.transition%d:\n", contador_backUp_logico);
+    contadorVarsL++;
+    fazer_llvm_rec(first);
+    printf("\t%%%d = icmp eq i1 %%%d, 1\n", contadorVarsL, contadorVarsL-1);
+    printf("\tbr label %%label.end%d\n", contador_backUp_logico);
+    printf("label.end%d:\n", contador_backUp_logico);
+    contadorVarsL++;
+    if(contador_backUp_logico == contadorLogico-1){
+        printf("\t%%%d = phi i1 [ 1, %%label.entry%d ], [ %%%d, %%label.transition%d ]\n", contadorVarsL, contador_backUp_logico, contadorVarsL-1, contador_backUp_logico);
     }
     else{
-        printf("\t%%%d = phi i1 [ 1, %%label.entry%d ], [ %%%d, %%label.end%d ]\n", contador_var_locais, aux_count_and_or, contador_var_locais-1, aux_count_and_or+1);
+        printf("\t%%%d = phi i1 [ 1, %%label.entry%d ], [ %%%d, %%label.end%d ]\n", contadorVarsL, contador_backUp_logico, contadorVarsL-1, contador_backUp_logico+1);
     }
-    contador_var_locais++;
+    contadorVarsL++;
 }
 
 void function_lshift(node *atual, int var1, int var2){
     if(strcmp(atual->anotacao, "int") == 0){
-        printf("\t%%%d = shl i32 %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = shl i32 %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
     else if(strcmp(atual->anotacao, "double") == 0){
         if(strcmp(atual->child->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var1);
-            var1 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var1);
+            var1 = contadorVarsL;
+            contadorVarsL++;
         }
         if(strcmp(atual->child->brother->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var2);
-            var2 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var2);
+            var2 = contadorVarsL;
+            contadorVarsL++;
         }
-        printf("\t%%%d = fshl double %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = fshl double %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
 }
 
 void function_rshift(node *atual, int var1, int var2){
     if(strcmp(atual->anotacao, "int") == 0){
-        printf("\t%%%d = ashr i32 %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = ashr i32 %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
     else if(strcmp(atual->anotacao, "double") == 0){
         if(strcmp(atual->child->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var1);
-            var1 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var1);
+            var1 = contadorVarsL;
+            contadorVarsL++;
         }
         if(strcmp(atual->child->brother->anotacao, "int") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, var2);
-            var2 = contador_var_locais;
-            contador_var_locais++;
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, var2);
+            var2 = contadorVarsL;
+            contadorVarsL++;
         }
-        printf("\t%%%d = fashr double %%%d, %%%d\n", contador_var_locais, var1, var2);
-        contador_var_locais++;
+        printf("\t%%%d = fashr double %%%d, %%%d\n", contadorVarsL, var1, var2);
+        contadorVarsL++;
     }
 }
 
 
-void function_if(node *atual){
+void tratarIf(node *atual){
     node *first = atual->child->brother;
-    while(strcmp(first->Type, "NULL") == 0){
+    while(strcmp(first->tipoNo, "NULL") == 0){
         first = first->brother;
     }
     node *second = first->brother;
 
-    while(strcmp(second->Type, "NULL") == 0){
+    while(strcmp(second->tipoNo, "NULL") == 0){
         second = second->brother;
     }
 
-    int aux_contador_label_if = contador_label_if;
-    contador_label_if++;
+    int backUp_contadorIf = contadorIf;
+    contadorIf++;
 
-    printf("\tbr label %%label.entry.if%d\n", aux_contador_label_if);
-    printf("label.entry.if%d:       ;it's if \n", aux_contador_label_if);
-    printf("\t%%%d = icmp eq i1 %%%d, 1\n", contador_var_locais, contador_var_locais-1);
-    printf("\tbr i1 %%%d, label %%label.then%d, label %%label.else%d\n", contador_var_locais, aux_contador_label_if, aux_contador_label_if);
-    contador_var_locais++;
+    printf("\tbr label %%label.entry.if%d\n", backUp_contadorIf);
+    printf("label.entry.if%d:\n", backUp_contadorIf);
+    printf("\t%%%d = icmp eq i1 %%%d, 1\n", contadorVarsL, contadorVarsL-1);
+    printf("\tbr i1 %%%d, label %%label.then%d, label %%label.else%d\n", contadorVarsL, backUp_contadorIf, backUp_contadorIf);
+    contadorVarsL++;
 
-    printf("label.then%d:       ;it's if \n", aux_contador_label_if);
-    code_llvm(first);
-    printf("br label %%label.finished.if%d\n", aux_contador_label_if);
+    printf("label.then%d:\n", backUp_contadorIf);
+    fazer_llvm_rec(first);
+    printf("br label %%label.finished.if%d\n", backUp_contadorIf);
     
-    printf("label.else%d:       ;it's else \n", aux_contador_label_if);
-    code_llvm(second);
-    printf("br label %%label.finished.if%d\n", aux_contador_label_if);
+    printf("label.else%d:\n", backUp_contadorIf);
+    fazer_llvm_rec(second);
+    printf("br label %%label.finished.if%d\n", backUp_contadorIf);
     
-    printf("label.finished.if%d:\n", aux_contador_label_if);
+    printf("label.finished.if%d:\n", backUp_contadorIf);
     
 }
 
-void function_while(node *atual){
+void tratarWhile(node *atual){
     node *first = atual->child;
-    while(strcmp(first->Type, "NULL") == 0){
+    while(strcmp(first->tipoNo, "NULL") == 0){
         first = first->brother;
     }
     node *second = first->brother;
-    while(strcmp(second->Type, "NULL") == 0){
+    while(strcmp(second->tipoNo, "NULL") == 0){
         second = second->brother;
     }
 
-    int aux_contador_label_while = contador_label_while;
-    contador_label_while++;
+    int backUp_contadorWhile = contadorWhile;
+    contadorWhile++;
 
-    printf("\tbr label %%label.entry.while%d\n", aux_contador_label_while);
-    printf("label.entry.while%d:       ;it's while \n", aux_contador_label_while);
-    code_llvm(first);
-    printf("\t%%%d = icmp eq i1 %%%d, 1\n", contador_var_locais, contador_var_locais-1);
-    printf("\tbr i1 %%%d, label %%label.work.while%d, label %%label.finished.while%d\n", contador_var_locais, aux_contador_label_while, aux_contador_label_while);
-    contador_var_locais++;
+    printf("\tbr label %%label.entry.while%d\n", backUp_contadorWhile);
+    printf("label.entry.while%d:\n", backUp_contadorWhile);
+    fazer_llvm_rec(first);
+    printf("\t%%%d = icmp eq i1 %%%d, 1\n", contadorVarsL, contadorVarsL-1);
+    printf("\tbr i1 %%%d, label %%label.work.while%d, label %%label.finished.while%d\n", contadorVarsL, backUp_contadorWhile, backUp_contadorWhile);
+    contadorVarsL++;
     
-    printf("label.work.while%d:       ;it's while \n", aux_contador_label_while);
-    code_llvm(second);
-    printf("\tbr label %%label.entry.while%d\n", aux_contador_label_while);
+    printf("label.work.while%d:\n", backUp_contadorWhile);
+    fazer_llvm_rec(second);
+    printf("\tbr label %%label.entry.while%d\n", backUp_contadorWhile);
     
-    printf("label.finished.while%d:\n", aux_contador_label_while);
+    printf("label.finished.while%d:\n", backUp_contadorWhile);
     
 }
 
 
-void function_return(node *atual){
+void tratarReturn(node *atual){
     if(atual->child == NULL){
         printf("\tret void\n");
-        contador_var_locais++;
+        contadorVarsL++;
         return;
     }
-    code_llvm(atual->child);
+    fazer_llvm_rec(atual->child);
     if(strcmp(atual->child->anotacao, "int") == 0){
-        if(strcmp(global_function_type, "Double") == 0){
-            printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, contador_var_locais-1);
-            contador_var_locais++;
-            printf("\tret double %%%d\n", contador_var_locais-1);
+        if(strcmp(tipoFuncao, "Double") == 0){
+            printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, contadorVarsL-1);
+            contadorVarsL++;
+            printf("\tret double %%%d\n", contadorVarsL-1);
         }
         else{
-            printf("\tret i32 %%%d\n", contador_var_locais-1);
+            printf("\tret i32 %%%d\n", contadorVarsL-1);
         }
     }
     else if(strcmp(atual->child->anotacao, "double") == 0){
-        printf("\tret double %%%d\n", contador_var_locais-1);
+        printf("\tret double %%%d\n", contadorVarsL-1);
     }
     else{
-        printf("\tret i1 %%%d\n", contador_var_locais-1);
+        printf("\tret i1 %%%d\n", contadorVarsL-1);
     }
-    contador_var_locais++;
+    contadorVarsL++;
 }
 
-void function_call(node *atual){
+void tratarChamada(node *atual){
     int i;
-    param_list *aux_params;
-    node *aux_node_params;
-    char *aux_name_f = (char*)malloc(1024*sizeof(char));
-    char *aux_params_f = (char*)malloc(1024*sizeof(char));
-    int aux_count_f = 0, aux_count_params_f = 0, numeroParametros;
+    listaParametros *backUp_params;
+    node *backUp_node_params;
+    char *backUp_name_f = (char*)malloc(1024*sizeof(char));
+    char *backUp_params_f = (char*)malloc(1024*sizeof(char));
+    int backUp_count_f = 0, backUp_count_params_f = 0, numeroParametros;
 
-    aux_params = atual->child->params;
+    backUp_params = atual->child->params;
     numeroParametros = atual->child->numeroParametros;
-    aux_node_params = atual->child->brother;
+    backUp_node_params = atual->child->brother;
 
     if(strcmp(atual->anotacao, "boolean") == 0){
-        sprintf(aux_name_f, "function.declaration.%s.%s.", "b", atual->child->valor);
+        sprintf(backUp_name_f, "function.declaration.%s.%s.", "b", atual->child->valor);
     }
     else if(strcmp(atual->anotacao, "int") == 0){
-        sprintf(aux_name_f, "function.declaration.%s.%s.", "i", atual->child->valor);
+        sprintf(backUp_name_f, "function.declaration.%s.%s.", "i", atual->child->valor);
     }
     else if(strcmp(atual->anotacao, "double") == 0){
-        sprintf(aux_name_f, "function.declaration.%s.%s.", "d", atual->child->valor);
+        sprintf(backUp_name_f, "function.declaration.%s.%s.", "d", atual->child->valor);
     }
     else{
-        sprintf(aux_name_f, "function.declaration.%s.%s.", "v", atual->child->valor);
+        sprintf(backUp_name_f, "function.declaration.%s.%s.", "v", atual->child->valor);
     }
 
-    aux_count_f = strlen(aux_name_f);
+    backUp_count_f = strlen(backUp_name_f);
 
-    while(aux_params != NULL){
-        if(strcmp(aux_node_params->Type, "NULL") == 0){
-            aux_node_params = aux_node_params->brother;
+    while(backUp_params != NULL){
+        if(strcmp(backUp_node_params->tipoNo, "NULL") == 0){
+            backUp_node_params = backUp_node_params->brother;
         }
 
-        if(strcmp(aux_params->type, "String[]") == 0){
-            code_llvm(aux_node_params);
+        if(strcmp(backUp_params->tipo, "String[]") == 0){
+            fazer_llvm_rec(backUp_node_params);
 
-            char *aux;
-            aux = (char*)strdup("s.");
+            char *backUp;
+            backUp = (char*)strdup("s.");
             i = 0;
-            while(aux[i] != '\0'){
-                aux_name_f[aux_count_f] = aux[i];
-                aux_count_f++;
+            while(backUp[i] != '\0'){
+                backUp_name_f[backUp_count_f] = backUp[i];
+                backUp_count_f++;
                 i++;
             }
 
-            free(aux);
-            aux = NULL;
+            free(backUp);
+            backUp = NULL;
 
-            sprintf(aux_params_f, "i%d %%argc, i8** %%argv", 32);
-            aux_count_params_f = strlen(aux_params_f);
+            sprintf(backUp_params_f, "i%d %%argc, i8** %%argv", 32);
+            backUp_count_params_f = strlen(backUp_params_f);
 
             break;
         }
-        else if(strcmp(aux_params->type, "int") == 0){
-            code_llvm(aux_node_params);
+        else if(strcmp(backUp_params->tipo, "int") == 0){
+            fazer_llvm_rec(backUp_node_params);
 
-            char *aux;
-            aux = (char*)strdup("i.");
+            char *backUp;
+            backUp = (char*)strdup("i.");
             i = 0;
-            while(aux[i] != '\0'){
-                aux_name_f[aux_count_f] = aux[i];
-                aux_count_f++;
+            while(backUp[i] != '\0'){
+                backUp_name_f[backUp_count_f] = backUp[i];
+                backUp_count_f++;
                 i++;
             }
 
-            free(aux);
-            aux = NULL;
+            free(backUp);
+            backUp = NULL;
 
-            aux = (char*)malloc(1024*sizeof(char));
-            sprintf(aux, "i32 %%%d", contador_var_locais-1);
+            backUp = (char*)malloc(1024*sizeof(char));
+            sprintf(backUp, "i32 %%%d", contadorVarsL-1);
 
             i = 0;
-            while(aux[i] != '\0'){
-                aux_params_f[aux_count_params_f] = aux[i];
-                aux_count_params_f++;
+            while(backUp[i] != '\0'){
+                backUp_params_f[backUp_count_params_f] = backUp[i];
+                backUp_count_params_f++;
                 i++;
             }
 
-            free(aux);
-            aux = NULL;
+            free(backUp);
+            backUp = NULL;
         }
-        else if(strcmp(aux_params->type, "boolean") == 0){
-            code_llvm(aux_node_params);
+        else if(strcmp(backUp_params->tipo, "boolean") == 0){
+            fazer_llvm_rec(backUp_node_params);
 
-            char *aux;
-            aux = (char*)strdup("b.");
+            char *backUp;
+            backUp = (char*)strdup("b.");
             i = 0;
-            while(aux[i] != '\0'){
-                aux_name_f[aux_count_f] = aux[i];
-                aux_count_f++;
+            while(backUp[i] != '\0'){
+                backUp_name_f[backUp_count_f] = backUp[i];
+                backUp_count_f++;
                 i++;
             }
 
-            free(aux);
-            aux = NULL;
+            free(backUp);
+            backUp = NULL;
 
-            aux = (char*)malloc(1024*sizeof(char));
-            sprintf(aux, "i1 %%%d", contador_var_locais-1);
+            backUp = (char*)malloc(1024*sizeof(char));
+            sprintf(backUp, "i1 %%%d", contadorVarsL-1);
 
             i = 0;
-            while(aux[i] != '\0'){
-                aux_params_f[aux_count_params_f] = aux[i];
-                aux_count_params_f++;
+            while(backUp[i] != '\0'){
+                backUp_params_f[backUp_count_params_f] = backUp[i];
+                backUp_count_params_f++;
                 i++;
             }
 
-            free(aux);
-            aux = NULL;
+            free(backUp);
+            backUp = NULL;
         }
-        else if(strcmp(aux_params->type, "double") == 0){
-            if(strcmp(aux_node_params->anotacao, "int") == 0){
-                code_llvm(aux_node_params);
-                printf("\t%%%d = sitofp i32 %%%d to double\n", contador_var_locais, contador_var_locais-1);
-                contador_var_locais++;
+        else if(strcmp(backUp_params->tipo, "double") == 0){
+            if(strcmp(backUp_node_params->anotacao, "int") == 0){
+                fazer_llvm_rec(backUp_node_params);
+                printf("\t%%%d = sitofp i32 %%%d to double\n", contadorVarsL, contadorVarsL-1);
+                contadorVarsL++;
             }
             else{
-                code_llvm(aux_node_params);
+                fazer_llvm_rec(backUp_node_params);
             }
 
-            char *aux;
-            aux = (char*)strdup("d.");
+            char *backUp;
+            backUp = (char*)strdup("d.");
             i = 0;
-            while(aux[i] != '\0'){
-                aux_name_f[aux_count_f] = aux[i];
-                aux_count_f++;
+            while(backUp[i] != '\0'){
+                backUp_name_f[backUp_count_f] = backUp[i];
+                backUp_count_f++;
                 i++;
             }
 
-            free(aux);
-            aux = NULL;
+            free(backUp);
+            backUp = NULL;
 
-            aux = (char*)malloc(1024*sizeof(char));
-            sprintf(aux, "double %%%d", contador_var_locais-1);
+            backUp = (char*)malloc(1024*sizeof(char));
+            sprintf(backUp, "double %%%d", contadorVarsL-1);
 
             i = 0;
-            while(aux[i] != '\0'){
-                aux_params_f[aux_count_params_f] = aux[i];
-                aux_count_params_f++;
+            while(backUp[i] != '\0'){
+                backUp_params_f[backUp_count_params_f] = backUp[i];
+                backUp_count_params_f++;
                 i++;
             }
 
-            free(aux);
-            aux = NULL;
+            free(backUp);
+            backUp = NULL;
         }
 
-        if(aux_params->next != NULL){
-            char *aux;
-            aux = (char*)strdup(", ");
+        if(backUp_params->seguinte != NULL){
+            char *backUp;
+            backUp = (char*)strdup(", ");
 
             i = 0;
-            while(aux[i] != '\0'){
-                aux_params_f[aux_count_params_f] = aux[i];
-                aux_count_params_f++;
+            while(backUp[i] != '\0'){
+                backUp_params_f[backUp_count_params_f] = backUp[i];
+                backUp_count_params_f++;
                 i++;
             }
-            free(aux);
-            aux = NULL;
+            free(backUp);
+            backUp = NULL;
         }
 
         numeroParametros--;
-        aux_params = aux_params->next;
-        aux_node_params = aux_node_params->brother;
+        backUp_params = backUp_params->seguinte;
+        backUp_node_params = backUp_node_params->brother;
     }
 
-    aux_name_f[aux_count_f] = '\0';
-    aux_params_f[aux_count_params_f] = '\0';
+    backUp_name_f[backUp_count_f] = '\0';
+    backUp_params_f[backUp_count_params_f] = '\0';
 
     if(strcmp(atual->anotacao, "int") == 0){
-        printf("\t%%%d = call i32 @%s(%s)\n", contador_var_locais, aux_name_f, aux_params_f);
-        contador_var_locais++;
+        printf("\t%%%d = call i32 @%s(%s)\n", contadorVarsL, backUp_name_f, backUp_params_f);
+        contadorVarsL++;
     }
     else if(strcmp(atual->anotacao, "double") == 0){
-        printf("\t%%%d = call double @%s(%s)\n", contador_var_locais, aux_name_f, aux_params_f);
-        contador_var_locais++;
+        printf("\t%%%d = call double @%s(%s)\n", contadorVarsL, backUp_name_f, backUp_params_f);
+        contadorVarsL++;
     }
     else if(strcmp(atual->anotacao, "boolean") == 0){
-        printf("\t%%%d = call i1 @%s(%s)\n", contador_var_locais, aux_name_f, aux_params_f);
-        contador_var_locais++;
+        printf("\t%%%d = call i1 @%s(%s)\n", contadorVarsL, backUp_name_f, backUp_params_f);
+        contadorVarsL++;
     }
     else{
-        printf("\tcall void @%s(%s)\n", aux_name_f, aux_params_f);
+        printf("\tcall void @%s(%s)\n", backUp_name_f, backUp_params_f);
     }
     
-    free(aux_name_f);
-    aux_name_f = NULL;
-    free(aux_params_f);
-    aux_params_f = NULL;
+    free(backUp_name_f);
+    backUp_name_f = NULL;
+    free(backUp_params_f);
+    backUp_params_f = NULL;
 }
 
-void change_declit(char *valor){
+void acertarDec(char *valor){
     int i=0, j=0;
 
     while(valor[i] != '\0'){
         if(valor[i] != '_'){
-            aux_change_declit[j] = valor[i];
+            stringDeclit[j] = valor[i];
             j++;
         }
         i++;
     }
 
-    aux_change_declit[j] = '\0';
+    stringDeclit[j] = '\0';
 }
 
-void change_reallit(char *valor){
+void acertarReal(char *valor){
     int i=0, j=0;
 
     while(valor[i] != '\0'){
         if(valor[i] != '_'){
-            aux_change_reallit[j] = valor[i];
+            stringReallit[j] = valor[i];
             j++;
         }
         i++;
     }
 
-    aux_change_reallit[j] = '\0';
+    stringReallit[j] = '\0';
 }
 
-void code_llvm(node *atual){
-    node *aux1;
+void fazer_llvm_rec(node *atual){
+    node *backUp1;
 
-    if(strcmp(atual->Type, "VarDecl") == 0){
-        function_varDecl(atual->child->Type, atual->child->brother->valor);
+    if(strcmp(atual->tipoNo, "VarDecl") == 0){
+        tratarVarDecl(atual->child->tipoNo, atual->child->brother->valor);
     }
-    else if(strcmp(atual->Type, "Call") == 0){
-        function_call(atual);
+    else if(strcmp(atual->tipoNo, "Call") == 0){
+        tratarChamada(atual);
     }
-    else if(strcmp(atual->Type, "Print") == 0){
-        aux1 = atual->child;
-        while(aux1 != NULL){
-            code_llvm(aux1);
-            aux1 = aux1->brother;
+    else if(strcmp(atual->tipoNo, "Print") == 0){
+        backUp1 = atual->child;
+        while(backUp1 != NULL){
+            fazer_llvm_rec(backUp1);
+            backUp1 = backUp1->brother;
         }
 
-        function_print(atual);
+        tratarPrint(atual);
     }
-    else if(strcmp(atual->Type, "RealLit") == 0){
-        function_realLit(atual);
+    else if(strcmp(atual->tipoNo, "RealLit") == 0){
+        tratarReal(atual);
     }
-    else if(strcmp(atual->Type, "DecLit") == 0){
-        function_decLit(atual);
+    else if(strcmp(atual->tipoNo, "DecLit") == 0){
+        tratarDec(atual);
     }
-    else if(strcmp(atual->Type, "BoolLit") == 0){
-        function_boolLit(atual);
+    else if(strcmp(atual->tipoNo, "BoolLit") == 0){
+        tratarBool(atual);
     }
-    else if(strcmp(atual->Type, "Assign") == 0){
-        aux1 = atual->child;
-        while(aux1 != NULL){
-            code_llvm(aux1);
-            aux1 = aux1->brother;
+    else if(strcmp(atual->tipoNo, "Assign") == 0){
+        backUp1 = atual->child;
+        while(backUp1 != NULL){
+            fazer_llvm_rec(backUp1);
+            backUp1 = backUp1->brother;
         }
-        function_assign(atual);
-        function_id(atual->child);
+        tratarAtr(atual);
+        tratarId(atual->child);
     }
-    else if(strcmp(atual->Type, "Id") == 0){
-        function_id(atual);
+    else if(strcmp(atual->tipoNo, "Id") == 0){
+        tratarId(atual);
     }
-    else if(strcmp(atual->Type, "Plus") == 0){
-        aux1 = atual->child;
-        while(aux1 != NULL){
-            code_llvm(aux1);
-            aux1 = aux1->brother;
+    else if(strcmp(atual->tipoNo, "Plus") == 0){
+        backUp1 = atual->child;
+        while(backUp1 != NULL){
+            fazer_llvm_rec(backUp1);
+            backUp1 = backUp1->brother;
         }
     }
-    else if(strcmp(atual->Type, "Minus") == 0){
-        aux1 = atual->child;
-        while(aux1 != NULL){
-            code_llvm(aux1);
-            aux1 = aux1->brother;
+    else if(strcmp(atual->tipoNo, "Minus") == 0){
+        backUp1 = atual->child;
+        while(backUp1 != NULL){
+            fazer_llvm_rec(backUp1);
+            backUp1 = backUp1->brother;
         }
-        function_minus(atual);
+        tratarMenos(atual);
     }
-    else if(strcmp(atual->Type, "Length") == 0){
-        function_length(atual);
+    else if(strcmp(atual->tipoNo, "Length") == 0){
+        tratarLen(atual);
     }
-    else if(strcmp(atual->Type, "ParseArgs") == 0){
-        code_llvm(atual->child->brother);
-        function_parseArgs(atual);
+    else if(strcmp(atual->tipoNo, "ParseArgs") == 0){
+        fazer_llvm_rec(atual->child->brother);
+        tratarParse(atual);
     }
-    else if(strcmp(atual->Type, "Add") == 0){
-        aux1 = atual->child;
-        code_llvm(aux1);
-        int var1 = contador_var_locais-1;
-        aux1 = atual->child->brother;
-        code_llvm(aux1);
-        int var2 = contador_var_locais-1;
+    else if(strcmp(atual->tipoNo, "Add") == 0){
+        backUp1 = atual->child;
+        fazer_llvm_rec(backUp1);
+        int var1 = contadorVarsL-1;
+        backUp1 = atual->child->brother;
+        fazer_llvm_rec(backUp1);
+        int var2 = contadorVarsL-1;
 
-        function_add(atual, var1, var2);
+        tratarAdd(atual, var1, var2);
     }
-    else if(strcmp(atual->Type, "Sub") == 0){
-        aux1 = atual->child;
-        code_llvm(aux1);
-        int var1 = contador_var_locais-1;
-        aux1 = atual->child->brother;
-        code_llvm(aux1);
-        int var2 = contador_var_locais-1;
+    else if(strcmp(atual->tipoNo, "Sub") == 0){
+        backUp1 = atual->child;
+        fazer_llvm_rec(backUp1);
+        int var1 = contadorVarsL-1;
+        backUp1 = atual->child->brother;
+        fazer_llvm_rec(backUp1);
+        int var2 = contadorVarsL-1;
 
-        function_sub(atual, var1, var2);
+        tratarSub(atual, var1, var2);
     }
-    else if(strcmp(atual->Type, "Mul") == 0){
-        aux1 = atual->child;
-        code_llvm(aux1);
-        int var1 = contador_var_locais-1;
-        aux1 = atual->child->brother;
-        code_llvm(aux1);
-        int var2 = contador_var_locais-1;
+    else if(strcmp(atual->tipoNo, "Mul") == 0){
+        backUp1 = atual->child;
+        fazer_llvm_rec(backUp1);
+        int var1 = contadorVarsL-1;
+        backUp1 = atual->child->brother;
+        fazer_llvm_rec(backUp1);
+        int var2 = contadorVarsL-1;
 
-        function_mul(atual, var1, var2);
+        tratarMul(atual, var1, var2);
     }
-    else if(strcmp(atual->Type, "Div") == 0){
-        aux1 = atual->child;
-        code_llvm(aux1);
-        int var1 = contador_var_locais-1;
-        aux1 = atual->child->brother;
-        code_llvm(aux1);
-        int var2 = contador_var_locais-1;
+    else if(strcmp(atual->tipoNo, "Div") == 0){
+        backUp1 = atual->child;
+        fazer_llvm_rec(backUp1);
+        int var1 = contadorVarsL-1;
+        backUp1 = atual->child->brother;
+        fazer_llvm_rec(backUp1);
+        int var2 = contadorVarsL-1;
 
-        function_div(atual, var1, var2);
+        tratarDiv(atual, var1, var2);
     }
-    else if(strcmp(atual->Type, "Mod") == 0){
-        aux1 = atual->child;
-        code_llvm(aux1);
-        int var1 = contador_var_locais-1;
-        aux1 = atual->child->brother;
-        code_llvm(aux1);
-        int var2 = contador_var_locais-1;
+    else if(strcmp(atual->tipoNo, "Mod") == 0){
+        backUp1 = atual->child;
+        fazer_llvm_rec(backUp1);
+        int var1 = contadorVarsL-1;
+        backUp1 = atual->child->brother;
+        fazer_llvm_rec(backUp1);
+        int var2 = contadorVarsL-1;
 
-        function_mod(atual, var1, var2);
+        tratarMod(atual, var1, var2);
     }
-    else if(strcmp(atual->Type, "Not") == 0){
-        aux1 = atual->child;
-        code_llvm(aux1);
-        int var1 = contador_var_locais-1;
+    else if(strcmp(atual->tipoNo, "Not") == 0){
+        backUp1 = atual->child;
+        fazer_llvm_rec(backUp1);
+        int var1 = contadorVarsL-1;
 
-        function_not(atual, var1);
+        tratarNot(atual, var1);
     }
-    else if(strcmp(atual->Type, "And") == 0){
-        code_llvm(atual->child);
-        function_and(atual);
+    else if(strcmp(atual->tipoNo, "And") == 0){
+        fazer_llvm_rec(atual->child);
+        tratarAnd(atual);
     }
-    else if(strcmp(atual->Type, "Or") == 0){
-        code_llvm(atual->child);
-        function_or(atual);
+    else if(strcmp(atual->tipoNo, "Or") == 0){
+        fazer_llvm_rec(atual->child);
+        tratarOr(atual);
     }
-    else if(strcmp(atual->Type, "Xor") == 0){
-        aux1 = atual->child;
-        code_llvm(aux1);
-        int var1 = contador_var_locais-1;
-        aux1 = atual->child->brother;
-        code_llvm(aux1);
-        int var2 = contador_var_locais-1;
+    else if(strcmp(atual->tipoNo, "Xor") == 0){
+        backUp1 = atual->child;
+        fazer_llvm_rec(backUp1);
+        int var1 = contadorVarsL-1;
+        backUp1 = atual->child->brother;
+        fazer_llvm_rec(backUp1);
+        int var2 = contadorVarsL-1;
         function_xor(atual, var1, var2);
     }
-    else if(strcmp(atual->Type, "Lshift") == 0){
-        aux1 = atual->child;
-        code_llvm(aux1);
-        int var1 = contador_var_locais-1;
-        aux1 = atual->child->brother;
-        code_llvm(aux1);
-        int var2 = contador_var_locais-1;
+    else if(strcmp(atual->tipoNo, "Lshift") == 0){
+        backUp1 = atual->child;
+        fazer_llvm_rec(backUp1);
+        int var1 = contadorVarsL-1;
+        backUp1 = atual->child->brother;
+        fazer_llvm_rec(backUp1);
+        int var2 = contadorVarsL-1;
         function_lshift(atual, var1, var2);
     }
-    else if(strcmp(atual->Type, "Rshift") == 0){
-        aux1 = atual->child;
-        code_llvm(aux1);
-        int var1 = contador_var_locais-1;
-        aux1 = atual->child->brother;
-        code_llvm(aux1);
-        int var2 = contador_var_locais-1;
+    else if(strcmp(atual->tipoNo, "Rshift") == 0){
+        backUp1 = atual->child;
+        fazer_llvm_rec(backUp1);
+        int var1 = contadorVarsL-1;
+        backUp1 = atual->child->brother;
+        fazer_llvm_rec(backUp1);
+        int var2 = contadorVarsL-1;
         function_rshift(atual, var1, var2);
     }
-    else if(strcmp(atual->Type, "Eq") == 0){
-        aux1 = atual->child;
-        code_llvm(aux1);
-        int var1 = contador_var_locais-1;
-        aux1 = atual->child->brother;
-        code_llvm(aux1);
-        int var2 = contador_var_locais-1;
+    else if(strcmp(atual->tipoNo, "Eq") == 0){
+        backUp1 = atual->child;
+        fazer_llvm_rec(backUp1);
+        int var1 = contadorVarsL-1;
+        backUp1 = atual->child->brother;
+        fazer_llvm_rec(backUp1);
+        int var2 = contadorVarsL-1;
 
-        function_eq(atual, var1, var2);
+        tratarIgual(atual, var1, var2);
     }
-    else if(strcmp(atual->Type, "Ne") == 0){
-        aux1 = atual->child;
-        code_llvm(aux1);
-        int var1 = contador_var_locais-1;
-        aux1 = atual->child->brother;
-        code_llvm(aux1);
-        int var2 = contador_var_locais-1;
+    else if(strcmp(atual->tipoNo, "Ne") == 0){
+        backUp1 = atual->child;
+        fazer_llvm_rec(backUp1);
+        int var1 = contadorVarsL-1;
+        backUp1 = atual->child->brother;
+        fazer_llvm_rec(backUp1);
+        int var2 = contadorVarsL-1;
 
-        function_neq(atual, var1, var2);
+        tratarDif(atual, var1, var2);
     }
-    else if(strcmp(atual->Type, "Lt") == 0){
-        aux1 = atual->child;
-        code_llvm(aux1);
-        int var1 = contador_var_locais-1;
-        aux1 = atual->child->brother;
-        code_llvm(aux1);
-        int var2 = contador_var_locais-1;
+    else if(strcmp(atual->tipoNo, "Lt") == 0){
+        backUp1 = atual->child;
+        fazer_llvm_rec(backUp1);
+        int var1 = contadorVarsL-1;
+        backUp1 = atual->child->brother;
+        fazer_llvm_rec(backUp1);
+        int var2 = contadorVarsL-1;
 
-        function_lt(atual, var1, var2);
+        tratarMenor(atual, var1, var2);
     }
-    else if(strcmp(atual->Type, "Gt") == 0){
-        aux1 = atual->child;
-        code_llvm(aux1);
-        int var1 = contador_var_locais-1;
-        aux1 = atual->child->brother;
-        code_llvm(aux1);
-        int var2 = contador_var_locais-1;
+    else if(strcmp(atual->tipoNo, "Gt") == 0){
+        backUp1 = atual->child;
+        fazer_llvm_rec(backUp1);
+        int var1 = contadorVarsL-1;
+        backUp1 = atual->child->brother;
+        fazer_llvm_rec(backUp1);
+        int var2 = contadorVarsL-1;
 
-        function_gt(atual, var1, var2);
+        tratarMaior(atual, var1, var2);
     }
-    else if(strcmp(atual->Type, "Le") == 0){
-        aux1 = atual->child;
-        code_llvm(aux1);
-        int var1 = contador_var_locais-1;
-        aux1 = atual->child->brother;
-        code_llvm(aux1);
-        int var2 = contador_var_locais-1;
+    else if(strcmp(atual->tipoNo, "Le") == 0){
+        backUp1 = atual->child;
+        fazer_llvm_rec(backUp1);
+        int var1 = contadorVarsL-1;
+        backUp1 = atual->child->brother;
+        fazer_llvm_rec(backUp1);
+        int var2 = contadorVarsL-1;
 
-        function_leq(atual, var1, var2);
+        tratarMenorIgual(atual, var1, var2);
     }
-    else if(strcmp(atual->Type, "Ge") == 0){
-        aux1 = atual->child;
-        code_llvm(aux1);
-        int var1 = contador_var_locais-1;
-        aux1 = atual->child->brother;
-        code_llvm(aux1);
-        int var2 = contador_var_locais-1;
+    else if(strcmp(atual->tipoNo, "Ge") == 0){
+        backUp1 = atual->child;
+        fazer_llvm_rec(backUp1);
+        int var1 = contadorVarsL-1;
+        backUp1 = atual->child->brother;
+        fazer_llvm_rec(backUp1);
+        int var2 = contadorVarsL-1;
 
-        function_geq(atual, var1, var2);
+        tratarMaiorIgual(atual, var1, var2);
     }
-    else if(strcmp(atual->Type, "Block") == 0){
-        aux1 = atual->child;
-        while(aux1 != NULL){
-            code_llvm(aux1);
-            aux1 = aux1->brother;
+    else if(strcmp(atual->tipoNo, "Block") == 0){
+        backUp1 = atual->child;
+        while(backUp1 != NULL){
+            fazer_llvm_rec(backUp1);
+            backUp1 = backUp1->brother;
         }
     }
-    else if(strcmp(atual->Type, "If") == 0){
-        code_llvm(atual->child);
-        function_if(atual);
+    else if(strcmp(atual->tipoNo, "If") == 0){
+        fazer_llvm_rec(atual->child);
+        tratarIf(atual);
     }
-    else if(strcmp(atual->Type, "While") == 0){
-        function_while(atual);
+    else if(strcmp(atual->tipoNo, "While") == 0){
+        tratarWhile(atual);
     }
-    else if(strcmp(atual->Type, "Return") == 0){
+    else if(strcmp(atual->tipoNo, "Return") == 0){
         return_encontrado = 1;
-        function_return(atual);
+        tratarReturn(atual);
     }
 }

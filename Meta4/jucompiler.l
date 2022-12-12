@@ -21,7 +21,7 @@ int numErrors=0;
 int aspaPos, barraPos, commentColuna, commentLinha;
 
 int yylex_destroy();
-sym_table *tabelaGlobal, *tabelaLocal;
+tabelaSimbolos *tabelaGlobal, *tabelaLocal;
 int errosSemantica;
 
 extern node* head;
