@@ -42,7 +42,7 @@
 %left           LPAR
 %left           RPAR
 
-%type  <node>   Program ProgramRec MethodDecl FieldDeclRec FieldDecl tipoNo MethodHeader FormalParamsRec FormalParams MethodBody MethodBodyRec VarDecl 
+%type  <node>   Program ProgramRec MethodDecl FieldDeclRec FieldDecl Type MethodHeader FormalParamsRec FormalParams MethodBody MethodBodyRec VarDecl 
                 VarDeclRec Statement MethodInvocation MethodInvocationRec Assignment Expr Expr2 ParseArgs StatementRec
 
 %%
@@ -64,7 +64,7 @@ MethodDecl              :   PUBLIC STATIC MethodHeader MethodBody           {$$ 
                                                                             addBrother($3, $4);}
                         ;
 
-FieldDecl               :   PUBLIC STATIC tipoNo ID FieldDeclRec SEMICOLON    {$$ = criaNode("FieldDecl", NULL, 0, 0);
+FieldDecl               :   PUBLIC STATIC Type ID FieldDeclRec SEMICOLON    {$$ = criaNode("FieldDecl", NULL, 0, 0);
                                                                             addChild($$, $3);
                                                                             node1 = criaNode("Id", $4->valor, $4->linha, $4->coluna);
                                                                             addBrother($3, node1);
@@ -84,13 +84,13 @@ FieldDeclRec            :                                                   {$$ 
                         ;
 
 
-tipoNo                    :   BOOL                                            {$$ = criaNode("Bool", NULL, 0, 0);}
+Type                    :   BOOL                                            {$$ = criaNode("Bool", NULL, 0, 0);}
                         |   INT                                             {$$ = criaNode("Int", NULL, 0, 0);}
                         |   DOUBLE                                          {$$ = criaNode("Double", NULL, 0, 0);}
                         ;
 
 
-MethodHeader            :   tipoNo ID LPAR RPAR                               {$$ = criaNode("MethodHeader", NULL, 0, 0);
+MethodHeader            :   Type ID LPAR RPAR                               {$$ = criaNode("MethodHeader", NULL, 0, 0);
                                                                             addChild($$, $1);
                                                                             node1 = criaNode("Id", $2->valor, $2->linha, $2->coluna);
                                                                             addBrother($1, node1);
@@ -106,7 +106,7 @@ MethodHeader            :   tipoNo ID LPAR RPAR                               {$
                                                                             libertaToken($1);
                                                                             libertaToken($2);}
 
-                        |   tipoNo ID LPAR FormalParams RPAR                  {$$ = criaNode("MethodHeader", NULL, 0, 0);
+                        |   Type ID LPAR FormalParams RPAR                  {$$ = criaNode("MethodHeader", NULL, 0, 0);
                                                                             addChild($$, $1);
                                                                             node1 = criaNode("Id", $2->valor, $2->linha, $2->coluna);
                                                                             addBrother($1, node1);
@@ -124,7 +124,7 @@ MethodHeader            :   tipoNo ID LPAR RPAR                               {$
                         ;
 
 
-FormalParams            :   tipoNo ID FormalParamsRec                         {$$ = criaNode("MethodParams", NULL, 0, 0);
+FormalParams            :   Type ID FormalParamsRec                         {$$ = criaNode("MethodParams", NULL, 0, 0);
                                                                             node1 = criaNode("ParamDecl", NULL, 0, 0);
                                                                             addChild($$, node1);
                                                                             node2 = criaNode("Id", $2->valor, $2->linha, $2->coluna);
@@ -145,7 +145,7 @@ FormalParams            :   tipoNo ID FormalParamsRec                         {$
                         ;
 
 FormalParamsRec         :                                                   {$$ = criaNode("NULL", NULL, 0, 0);}
-                        |   FormalParamsRec COMMA tipoNo ID                   {$$ = criaNode("ParamDecl", NULL, 0, 0);
+                        |   FormalParamsRec COMMA Type ID                   {$$ = criaNode("ParamDecl", NULL, 0, 0);
                                                                             node1 = criaNode("Id", $4->valor, $4->linha, $4->coluna);
                                                                             addChild($$, $3);
                                                                             addBrother($3, node1);
@@ -165,7 +165,7 @@ MethodBodyRec           :                                                   {$$ 
                         ;
 
 
-VarDecl                 :   tipoNo ID VarDeclRec SEMICOLON                    {$$ = criaNode("VarDecl", NULL, 0, 0);
+VarDecl                 :   Type ID VarDeclRec SEMICOLON                    {$$ = criaNode("VarDecl", NULL, 0, 0);
                                                                             addChild($$, $1);
                                                                             node1 = criaNode("Id", $2->valor, $2->linha, $2->coluna);
                                                                             addBrother($1, node1);

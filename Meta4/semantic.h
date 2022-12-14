@@ -47,7 +47,7 @@ typedef struct _listaVariaveis {
     int linha, coluna;
     char *nome;
     char *tipo;
-    int isParametro; //0 - não é parametro 1 - é parametro 2 - é parametro mas não imprimir
+    int isParametro; //0-não é parametro 1-é parametro 2-é parametro mas não imprimir
     bool isFunction;
     int numeroParametros; //se for funcao tem o numero de parametros
     struct _listaParametros *parametroTipos;
